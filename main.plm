@@ -1,0 +1,9 @@
+println("Hello world from Plume")
+
+res = execute_command("echo Hello world from Shell")
+
+println(res.show())
+
+args = get_args()
+
+args.map(println)

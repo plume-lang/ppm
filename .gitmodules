@@ -1,0 +1,3 @@
+[submodule "src/ffi/plume"]
+	path = src/ffi/plume
+	url = https://github.com/plume-lang/runtime.git
