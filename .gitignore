@@ -1,0 +1,11 @@
+*.bin
+*.dylib
+*.so
+*.dll
+
+.vscode
+
+.xmake
+build
+
+*.zip
