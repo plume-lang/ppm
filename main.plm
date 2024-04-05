@@ -1,9 +1,10 @@
-println("Hello world from Plume")
+require "library/parser"
 
-res = execute_command("echo Hello world from Shell")
+source = "hello world"
 
-println(res.show())
+parser = string("hello") >> string(" world")
+res = parser.eval_parser(source)
 
-args = get_args()
-
-args.map(println)
+switch res 
+  case Ok(x) => println(x)
+  case Error(err) => println("Error: " + err)
