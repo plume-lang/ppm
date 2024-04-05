@@ -4,14 +4,8 @@ type ParserResult<A> =
 type Parser<A> =
   Parser((str) -> ParserResult<A>)
 
-native "../src/ffi/bin/ppm-ffi" ffi_slice(c: str, start: int, end: int): str
-
 extend (c: str) with
-  slice(start: int, end: int): str => ffi_slice(c, start, end)
-  extract_head(): (Option<char>, str) => 
-    switch (c[0], c.slice(1, c.len()))
-      case (Some(c), rest) => (Some(c), rest)
-      case (None, ?) => (None, c)
+  extract_head(): (Option<char>, str) => (c[0], c[1:])
 
 extend<A> (r: ParserResult<A>) with
   map<B>(f: (A) -> B): ParserResult<B> =>

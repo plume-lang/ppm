@@ -5,7 +5,7 @@
 #include <value.h>
 
 Value execute(size_t argc, Module *mod, Value *args) {
-  ASSERT_FMT(argc == 1, "Expected 1 argument, but got %d", argc);
+  ASSERT_FMT(argc == 1, "Expected 1 argument, but got %zu", argc);
 
   char *command = args[0].string_value;
   int ret = system(command);
