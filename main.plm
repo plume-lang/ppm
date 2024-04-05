@@ -6,5 +6,5 @@ parser = string("hello") >> string(" world")
 res = parser.eval_parser(source)
 
 switch res 
-  case Ok(x) => println(x)
+  case Ok(x) => println(x[1..])
   case Error(err) => println("Error: " + err)
