@@ -1,0 +1,82 @@
+type ParserResult<A> =
+  Result(Result<str, A>, str)
+
+type Parser<A> =
+  Parser((str) -> ParserResult<A>)
+
+native "../src/ffi/bin/ppm-ffi" ffi_slice(c: str, start: int, end: int): str
+
+extend (c: str) with
+  slice(start: int, end: int): str => ffi_slice(c, start, end)
+  extract_head(): (Option<char>, str) => 
+    switch (c[0], c.slice(1, c.len()))
+      case (Some(c), rest) => (Some(c), rest)
+      case (None, ?) => (None, c)
+
+extend<A> (r: ParserResult<A>) with
+  map<B>(f: (A) -> B): ParserResult<B> =>
+    switch r
+      case Result(r, rest) => Result(r.map(f), rest)
+
+extend<A> (p: Parser<A>) with
+  run_parser(input: str): ParserResult<A> =>
+    switch p
+      case Parser(f) => f(input)
+
+  eval_parser(input: str): Result<str, A> =>
+    switch p.run_parser(input)
+      case Result(res, ?) => res
+
+throwParser(err: str): Parser<A> =>
+  return Parser(input => Result(Error(err), input))
+
+throw_result<A>(err: str): ParserResult<A> =>
+  return Result(Error(err), "")
+
+extend<A> (p: Parser<A>) with
+  map<B>(f: (A) -> B): Parser<B> =>
+    return Parser(input => p.run_parser(input).map(f))
+  
+  and_then<B>(f: (A) -> Parser<B>): Parser<B> =>
+    return Parser(input => switch p.run_parser(input)
+      case Result(Ok(result), rest) => f(result).run_parser(rest)
+      case Result(Error(err), ?) => Result(Error(err), ""))
+
+pure<A>(x: A): Parser<A> =>
+  return Parser(input => Result(Ok(x), input))
+
+satisfy(predicate: (char) -> bool): Parser<char> =>
+  return Parser(input => 
+    switch input.extract_head()
+      case (Some(x), xs) => 
+        return if predicate(x) then Result(Ok(x), xs) else Result(Error("Unexpected input"), input)
+      case (None, ?) => Result(Error("Unexpected end of input"), "")
+  )
+
+character(c: char): Parser<char> =>
+  return Parser(input => switch input.extract_head()
+      case (Some(x), xs) => if x == c then Result(Ok(x), xs) else Result(Error("Unexpected input"), input)
+      case (None, ?) => Result(Error("Unexpected end of input"), "")
+  )
+
+string(s: str): Parser<str> =>
+  return Parser(input => 
+    switch (input.extract_head(), s.extract_head())
+      case ((Some(x), i_rest), (Some(y), s_rest)) =>
+        if x == y then
+          return string(s_rest)
+            .and_then(rest => pure(y.to_str() + rest))
+            .run_parser(i_rest)
+        else
+          return Result(Error("Unexpected input"), input)
+      case (?, (None, ?)) => 
+        return Result(Ok(""), input)
+      case ((None, ?), (Some(?), ?)) => 
+        return Result(Error("Unexpected end of input"), "")
+  )
+
+infixr 3 >>
+
+extend<A> (p: Parser<A>) with
+  operator >> <B>(q: Parser<B>): Parser<B> =>
+    return p.and_then(_ => q)
