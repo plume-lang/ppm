@@ -1,3 +1,5 @@
+require "char"
+
 type ParserResult<A> =
   Result(Result<str, A>, str)
 
@@ -11,15 +13,22 @@ extend<A> (r: ParserResult<A>) with
   map<B>(f: (A) -> B): ParserResult<B> =>
     switch r
       case Result(r, rest) => Result(r.map(f), rest)
+      case ? => r
 
 extend<A> (p: Parser<A>) with
   run_parser(input: str): ParserResult<A> =>
     switch p
-      case Parser(f) => f(input)
+      case Parser(f) => 
+        return f(input)
+      case ? => 
+        return Result(Error("Should not happen"), "")
 
   eval_parser(input: str): Result<str, A> =>
     switch p.run_parser(input)
-      case Result(res, ?) => res
+      case Result(res, rest) => 
+        return res
+      case ? => 
+        return Error("Should not happen")
 
 throwParser(err: str): Parser<A> =>
   return Parser(input => Result(Error(err), input))
@@ -35,6 +44,16 @@ extend<A> (p: Parser<A>) with
     return Parser(input => switch p.run_parser(input)
       case Result(Ok(result), rest) => f(result).run_parser(rest)
       case Result(Error(err), ?) => Result(Error(err), ""))
+
+infixr 3 >>
+infixr 2 >>=
+
+extend<A> (p: Parser<A>) with
+  operator >> <B>(q: Parser<B>): Parser<B> =>
+    return p.and_then(_ => q)
+
+  operator >>= <B>(f: (A) -> Parser<B>): Parser<B> =>
+    return p.and_then(f)
 
 pure<A>(x: A): Parser<A> =>
   return Parser(input => Result(Ok(x), input))
@@ -54,23 +73,40 @@ character(c: char): Parser<char> =>
   )
 
 string(s: str): Parser<str> =>
-  return Parser(input => 
-    switch (input.extract_head(), s.extract_head())
-      case ((Some(x), i_rest), (Some(y), s_rest)) =>
-        if x == y then
-          return string(s_rest)
-            .and_then(rest => pure(y.to_str() + rest))
-            .run_parser(i_rest)
-        else
-          return Result(Error("Unexpected input"), input)
-      case (?, (None, ?)) => 
-        return Result(Ok(""), input)
-      case ((None, ?), (Some(?), ?)) => 
-        return Result(Error("Unexpected end of input"), "")
-  )
-
-infixr 3 >>
+  return switch s.extract_head()
+    case (Some(x), xs) => character(x)
+      .and_then(_ => string(xs))
+      .and_then(_ => pure(s))
+    case (None, ?) => pure("")
 
 extend<A> (p: Parser<A>) with
-  operator >> <B>(q: Parser<B>): Parser<B> =>
-    return p.and_then(_ => q)
+  or(q: Parser<A>): Parser<A> =>
+    return Parser(input => switch p.run_parser(input)
+      case Result(Ok(result), rest) => Result(Ok(result), rest)
+      case Result(Error(?), ?) => q.run_parser(input))
+
+  many(): Parser<[A]> =>
+    return (p >>= x => Parser(input =>
+      switch p.many().run_parser(input)
+        case Result(Ok(xs), rest) => Result(Ok(xs.prepend(x)), rest)
+        case Result(Error(?), ?) => Result(Ok([x]), input)
+    ))
+
+  many1(): Parser<[A]> => p >>= x => 
+    return p.many() >>= xs =>
+      return pure(xs.prepend(x))
+
+test(xs: [char]): str => 
+  switch xs 
+    case [] => 
+      return ""
+    case [x, ..xs] => 
+      return x.to_str() + xs.test()
+
+alphabetic: Parser<char> = satisfy(is_alphabetic)
+
+identifier: Parser<str> = alphabetic >>= x =>
+  return alphabetic.many() >>= xs =>
+    return pure(x.to_str() + xs.test())
+
+spaces: Parser<()> = satisfy(is_whitespace).many() >> pure(unit)

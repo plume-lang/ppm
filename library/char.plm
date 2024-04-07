@@ -1,0 +1,5 @@
+native "../src/ffi/bin/ppm-ffi" with
+  is_alphabetic(c: char): bool
+  is_alphanumeric(c: char): bool
+  is_digit(c: char): bool
+  is_whitespace(c: char): bool
