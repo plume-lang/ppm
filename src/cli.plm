@@ -1,0 +1,54 @@
+require "../library/parser"
+
+type Argument {
+  Option(str),
+  Binding(str, str)
+}
+
+type Command { Command(Option<str>, [Argument]) }
+
+extend (a: Argument) {
+  fn show(): str => switch a {
+    case Option(x) => "-" + x
+    case Binding(name, value) => name + "=" + value
+  }
+}
+
+fn get_name(c: Command): Option<str> => 
+  switch c {
+    case Command(name, _) => name
+  }
+
+extend (c: Command) {
+  fn show(): str => 
+    switch c {
+      case Command(None, arguments) => 
+        arguments.map(show).join(" ")
+      case Command(Some(name), arguments) => 
+        name + " " + arguments.map(show).join(" ")
+    }
+}
+
+parse_option: Parser<Argument> = character('-') >> identifier.map(fn (x) => Option(x))
+parse_binding: Parser<Argument> = identifier >>= fn (name) =>
+  character('=') >> identifier.map(fn (value) => Binding(name, value))
+
+parse_argument: Parser<Argument> = choice([
+  parse_option, 
+  parse_binding
+]) <?> "Expected option or binding"
+
+parse_options: Parser<[Argument]> = parse_argument.sep_by(spaces)
+
+parse_command: Parser<Command> = identifier.optional() >>= fn (name) =>
+  spaces >> parse_options.map(fn (arguments) => 
+    Command(name, arguments))
+
+fn get_option(args: [Argument], name: str): Option<str> {
+  switch args {
+    case [] => None
+    case [Binding(n, v), ..rest] => 
+      if (n == name) Some(v) else get_option(rest, name)
+    case [?, ..rest] => get_option(rest, name)
+  }
+}
