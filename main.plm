@@ -1,10 +1,26 @@
-require "library/parser"
+require "src/cli"
+require "src/commands/init"
+require "src/commands/install"
 
-source = "hello world"
+args = get_args()[2..].join(" ")
 
-parser = string("hello") >> string(" world")
-res = parser.eval_parser(source)
+res = parse_command.eval_parser(args)
 
-switch res 
-  case Ok(x) => println(x[1..])
-  case Error(err) => println("Error: " + err)
+switch res {
+  case Ok(Command(Some(cmd), args)) =>
+    switch cmd {
+      case "init" {
+        cli_init(args)
+        0
+      }
+      case "install" {
+        cli_install(args)
+        0
+      }
+      case ? => println("Unknown command: " + cmd)
+    }
+  case Ok(Command(None, ?)) =>
+    println("Defaulting to help")
+  case Error(msg) =>
+    println("Error: {msg}")
+}
