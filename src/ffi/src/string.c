@@ -52,3 +52,27 @@ Value is_whitespace(size_t argc, Module *mod, Value *args) {
 
   return MAKE_INTEGER(isspace(c));
 }
+
+Value str_split(size_t argc, Module *mod, Value *args) {
+  ASSERT_FMT(argc == 2, "Expected 2 arguments, but got %zu", argc);
+
+  char *str = args[0].string_value;
+  char *delim = args[1].string_value;
+
+  char *token = strtok(str, delim);
+  Value *values = malloc(sizeof(Value) * 100);
+  size_t i = 0;
+
+  while (token != NULL) {
+    values[i] = MAKE_STRING(token);
+    token = strtok(NULL, delim);
+    i++;
+  }
+
+  Value v;
+  v.type = VALUE_LIST;
+  v.list_value.length = i;
+  v.list_value.values = values;
+
+  return v;
+}
