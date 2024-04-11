@@ -1,0 +1,6 @@
+native "../src/ffi/bin/ppm-ffi" {
+  ppm_readfile(path: str): Option<str>
+  ppm_writefile(path: str, data: str): bool 
+  ppm_mkdir(path: str): bool
+  ppm_listdir(path: str): Option<[str]>
+}
