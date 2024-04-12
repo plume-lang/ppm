@@ -3,4 +3,6 @@ native "../src/ffi/bin/ppm-ffi" {
   ppm_writefile(path: str, data: str): bool 
   ppm_mkdir(path: str): bool
   ppm_listdir(path: str): Option<[str]>
+  get_cwd(): Option<str>
+  get_env(key: str): Option<str>
 }

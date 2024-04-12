@@ -7,8 +7,11 @@
 
 #if defined(_WIN32)
   #include <direct.h>
+  #define GetCurrentDir _getcwd
 #else
   #include <sys/stat.h>
+  #include <unistd.h>
+  #define GetCurrentDir getcwd
 #endif
 
 int create_directory(char* dirname) {
@@ -115,4 +118,19 @@ Value ppm_listdir(size_t argc, Module *mod, Value *args) {
   v.list_value.values = values;
 
   return MAKE_SOME(v);
+}
+
+Value get_cwd(size_t argc, Module *mod, Value *args) {
+  char cwd[1024];
+  if (GetCurrentDir(cwd, sizeof(cwd)) == NULL) return MAKE_NONE();
+  return MAKE_SOME(MAKE_STRING(cwd));
+}
+
+Value get_env(size_t argc, Module *mod, Value *args) {
+  ASSERT_FMT(argc == 1, "Expected 1 argument, but got %zu", argc);
+
+  char *name = args[0].string_value;
+  char *value = getenv(name);
+  if (value == NULL) return MAKE_NONE();
+  return MAKE_SOME(MAKE_STRING(value));
 }
