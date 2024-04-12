@@ -1,6 +1,9 @@
 require "src/cli"
 require "src/commands/init"
 require "src/commands/install"
+require "src/commands/help"
+require "src/commands/build"
+require "src/commands/run"
 
 args = get_args()[2..].join(" ")
 
@@ -11,8 +14,10 @@ switch res {
     switch cmd {
       case "init" => cli_init(args)
       case "install" => cli_install(args)
+      case "build" => cli_build(args)
+      case "run" => cli_run(args)
       case ? => println("Unknown command: " + cmd)
     }
-  case Ok(Command(None, ?)) => println("Defaulting to help")
-  case Error(msg) => println("Error: {msg}")
+  case Ok(Command(None, ?)) => cli_help()
+  case Error(msg) => println("Error while parsing your query command: " + msg)
 }
