@@ -118,6 +118,9 @@ fn clist_to_str(xs: [char]): str =>
 
 fn take_while(predicate: fn (char): bool): Parser<str> =>
   satisfy(predicate).many() >>= fn (xs) => pure(xs.clist_to_str())
+
+fn take_while1(predicate: fn (char): bool): Parser<str> =>
+  satisfy(predicate).many1() >>= fn (xs) => pure(xs.clist_to_str())
   
 alphabetic: Parser<char> = satisfy(is_alphabetic)
 
@@ -129,12 +132,15 @@ integer: Parser<int> = satisfy(is_digit).many1() >>= fn (xs) =>
   pure(to_int(xs.clist_to_str()))
 
 spaces: Parser<()> = satisfy(is_whitespace).many() >> pure(unit)
+spaces1: Parser<()> = satisfy(is_whitespace).many1() >> pure(unit)
 
-fn choice<A>(ps: [Parser<A>]): Parser<A> =>
-  switch ps {
-    case [] => throw_parser("No parser left to choose from")
-    case [p, ..ps] => p.or(choice(ps))
-  }
+extend<A> (cs: [Parser<A>]) {
+  fn choice(): Parser<A> =>
+    switch cs {
+      case [] => throw_parser("No parser left to choose from")
+      case [p, ..ps] => p.or(choice(ps))
+    }
+}
 
 fn sep_by<A, B>(p: Parser<A>, sep: Parser<B>): Parser<[A]> =>
   (p >>= fn (x) => (sep >> p).many() >>= fn (xs) => pure(xs.prepend(x))) 
@@ -152,3 +158,12 @@ extend<A> (p: Parser<A>) {
 }
 
 fn optional<A>(p: Parser<A>): Parser<Option<A>> => p.map(Some).or(pure(None))
+
+extend<A> (o: Option<A>) {
+  fn or(other: A): A {
+    switch o {
+      case Some(a) => a
+      case None => other
+    }
+  }
+}
