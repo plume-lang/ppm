@@ -47,6 +47,12 @@ extend<A> (p: Parser<A>) {
 
   fn map<B>(f: fn (A): B): Parser<B> =>
     Parser(fn (input) => p.run_parser(input).map(f))
+  
+  fn try_parse(): Parser<A> => 
+    Parser(fn (input) => switch p.run_parser(input) {
+      case Result(Ok(res), inp) => Result(Ok(res), inp)
+      case Result(Error(err), ?) => Result(Error(err), input)
+    })
 }
 
 infixr 3 >>
@@ -160,10 +166,9 @@ extend<A> (p: Parser<A>) {
 fn optional<A>(p: Parser<A>): Parser<Option<A>> => p.map(Some).or(pure(None))
 
 extend<A> (o: Option<A>) {
-  fn or(other: A): A {
+  fn or(other: A): A =>
     switch o {
       case Some(a) => a
       case None => other
     }
-  }
 }
