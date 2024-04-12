@@ -11,7 +11,7 @@ fn compile(does_compile: bool): Option<str> {
     switch config {
       case Ok(config) {
         switch config.get("entry") {
-          case Some(Value(path)) { return Some(path.remove_ext() + ".bin") }
+          case Some(path) { return Some(path.remove_ext() + ".bin") }
           case ? { return None }
         }
       }

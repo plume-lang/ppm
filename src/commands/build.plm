@@ -53,7 +53,7 @@ fn build(): Option<str> {
     case Ok(config_ast) {
       // Trying to compile FFI library if it is present
       res = switch config_ast.get("native") {
-        case Some(Value(ffi_path)) => compile_ffi(ffi_path, compilers)
+        case Some(ffi_path) => compile_ffi(ffi_path, compilers)
         case None => None
       }
 
@@ -62,7 +62,7 @@ fn build(): Option<str> {
       switch res {
         case None {
           switch config_ast.get("entry") {
-            case Some(Value(entry)) {
+            case Some(entry) {
               execute_command("plumec " + entry)
               return Some(entry.remove_ext() + ".bin")
             }

@@ -16,7 +16,7 @@ cwd_ = get_cwd()
 
 fn create_script_file(file: str, conf: Config, override: bool) {
   switch conf.get("entry") {
-    case Some(Value(file_name)) {
+    case Some(file_name) {
       script = "#!/bin/sh\nplume " 
              + (cwd_ or "") 
              + "/" 
@@ -37,6 +37,7 @@ fn create_script_file(file: str, conf: Config, override: bool) {
 
           ppm_writefile(final_path, script)
           execute_command("chmod +x " + final_path)
+          
           println("Installed " + file)
           return 0
         }
@@ -49,7 +50,7 @@ fn create_script_file(file: str, conf: Config, override: bool) {
 }
 
 fn get_config(files: [str]): Option<str> {
-  switch files {
+  return switch files {
     case ["plume.config", ..rest] => Some("plume.config")
     case [?, ..rest] => get_config(rest)
     case [] => None
@@ -77,8 +78,7 @@ fn cli_install(args: [Argument]) {
   switch res {
     case Ok(config) {
       switch config.get("name") {
-        case Some(Value(name)) => create_script_file(name, config, overrides)
-        case Some(_) => println("Name in plume.config is not a string")
+        case Some(name) => create_script_file(name, config, overrides)
         case None => println("No name found in plume.config")
       }
     }

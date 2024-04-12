@@ -4,7 +4,7 @@ type CommandUI {
   CommandUI(str, str)
 }
 
-fn print_cmd(cmd: [CommandUI]) {
+fn print_cmd(cmd: [CommandUI]) =>
   switch cmd {
     case [] => unit
     case [CommandUI(name, description), ..tail] => {
@@ -12,7 +12,6 @@ fn print_cmd(cmd: [CommandUI]) {
       print_cmd(tail)
     }
   }
-}
 
 fn cli_help() {
   cmds = [CommandUI("init", "Create a new project"),
