@@ -76,3 +76,10 @@ Value str_split(size_t argc, Module *mod, Value *args) {
 
   return v;
 }
+
+Value ffi_to_int(size_t argc, Module *mod, Value *args) {
+  ASSERT_FMT(argc == 1, "Expected 1 argument, but got %zu", argc);
+
+  char *str = args[0].string_value;
+  return MAKE_INTEGER(atoi(str));
+}

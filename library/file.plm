@@ -2,7 +2,7 @@ native "../src/ffi/bin/ppm-ffi" {
   ppm_readfile(path: str): Option<str>
   ppm_writefile(path: str, data: str): bool 
   ppm_mkdir(path: str): bool
-  ppm_listdir(path: str): Option<[str]>
   get_cwd(): Option<str>
   get_env(key: str): Option<str>
+  ppm_chmod(path: str, mode: int): bool
 }

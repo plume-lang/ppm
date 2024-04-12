@@ -94,35 +94,10 @@ Value ppm_mkdir(size_t argc, Module *mod, Value *args) {
   return MAKE_INTEGER(ret);
 }
 
-Value ppm_listdir(size_t argc, Module *mod, Value *args) {
-  ASSERT_FMT(argc == 1, "Expected 1 argument, but got %zu", argc);
-
-  char *dirname = args[0].string_value;
-  DIR *dir = opendir(dirname);
-  if (dir == NULL) return MAKE_NONE();
-
-  struct dirent *entry;
-  Value *values = malloc(sizeof(Value) * 100);
-  size_t i = 0;
-
-  while ((entry = readdir(dir)) != NULL) {
-    values[i] = MAKE_STRING(entry->d_name);
-    i++;
-  }
-
-  closedir(dir);
-
-  Value v;
-  v.type = VALUE_LIST;
-  v.list_value.length = i;
-  v.list_value.values = values;
-
-  return MAKE_SOME(v);
-}
-
 Value get_cwd(size_t argc, Module *mod, Value *args) {
-  char cwd[1024];
-  if (GetCurrentDir(cwd, sizeof(cwd)) == NULL) return MAKE_NONE();
+  char *cwd = malloc(FILENAME_MAX * sizeof(char));
+  GetCurrentDir(cwd, FILENAME_MAX);
+  if (cwd == NULL) return MAKE_NONE();
   return MAKE_SOME(MAKE_STRING(cwd));
 }
 
@@ -133,4 +108,15 @@ Value get_env(size_t argc, Module *mod, Value *args) {
   char *value = getenv(name);
   if (value == NULL) return MAKE_NONE();
   return MAKE_SOME(MAKE_STRING(value));
+}
+
+Value ppm_chmod(size_t argc, Module *mod, Value *args) {
+  ASSERT_FMT(argc == 2, "Expected 2 arguments, but got %zu", argc);
+
+  char *filename = args[0].string_value;
+  mode_t mode = args[1].int_value;
+  printf("chmod(%s, %d)\n", filename, mode);
+  int ret = chmod(filename, mode);
+  printf("%d\n", ret);
+  return MAKE_INTEGER(ret);
 }

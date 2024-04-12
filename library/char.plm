@@ -3,4 +3,9 @@ native "../src/ffi/bin/ppm-ffi" {
   is_alphanumeric(c: char): bool
   is_digit(c: char): bool
   is_whitespace(c: char): bool
+  ffi_to_int(c: str): int
+}
+
+extend (c: str) {
+  fn to_int(): int => ffi_to_int(c)
 }
