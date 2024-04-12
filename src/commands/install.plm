@@ -12,8 +12,14 @@ fn remove_ext(file: str): str {
 
 fn create_script_file(file: str) {
   script = "#!/bin/sh\nplume " + file + ".bin"
-  ppm_writefile(file + ".sh", script)
-  return 1
+  
+  switch get_env("PPM_PATH") {
+    case Some(path) => {
+      ppm_writefile(path + "/bin/" + file, script)
+      1
+    }
+    case None => println("PPM_PATH not set")
+  }
 }
 
 fn get_config(files: [str]): Option<str> {
@@ -37,7 +43,8 @@ fn cli_install(args: [Argument]) {
   switch args.get_option("name") {
     case Some(name) => create_script_file(name)
     case None => {
-      files = ppm_listdir(".") or []
+      dir = get_cwd() or "."
+      files = ppm_listdir(dir) or []
       switch get_config(files) {
         case Some(config) => {
           config_content = ppm_readfile(config)
