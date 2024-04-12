@@ -52,3 +52,12 @@ fn get_option(args: [Argument], name: str): Option<str> {
     case [?, ..rest] => get_option(rest, name)
   }
 }
+
+fn has_flag(args: [Argument], name: str): bool {
+  switch args {
+    case [] => false
+    case [Option(n), ..rest] => 
+      if (n == name) true else has_flag(rest, name)
+    case [?, ..rest] => has_flag(rest, name)
+  }
+}

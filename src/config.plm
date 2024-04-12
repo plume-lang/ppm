@@ -1,0 +1,41 @@
+require "../library/parser"
+require "../library/char"
+
+type Value { Value(str), Version([int]) }
+type Config { Config([(str, Value)]) }
+
+val: Parser<str> = take_while(fn (c) => c != ' ' and c != '\n')
+parse_version: Parser<Value> = integer.sep_by(character('.')).map(Version)
+parse_value: Parser<Value> = val.map(Value).or(parse_version)
+
+parse_parameter: Parser<(str, Value)> = identifier >>= fn (name) =>
+  spaces >> character(':') >> spaces >> parse_value >>= fn (value) =>
+    pure((name, value))
+
+parse_config: Parser<Config> = parse_parameter.sep_by(character('\n')).map(Config)
+
+extend (c: Value) {
+  fn show(): str => switch c {
+    case Value(s) => s
+    case Version(v) => v.map(show).join(".")
+  }
+}
+
+extend (c: [(str, Value)]) {
+  fn get(name: str): Option<Value> => switch c {
+    case [] => None
+    case [(n, v), ..rest] => if (n == name) Some(v) else rest.get(name)
+  }
+}
+
+extend (c: Config) {
+  fn show(): str => switch c {
+    case Config(options) => options
+      .map(fn(tp) => tp.show(show, show))
+      .join("\n")
+  }
+
+  fn get(name: str): Option<Value> => switch c {
+    case Config(options) => options.get(name)
+  }
+}
