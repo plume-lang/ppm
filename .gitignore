@@ -9,3 +9,7 @@
 build
 
 *.zip
+bin/*
+!bin/.gitkeep
+
+test
