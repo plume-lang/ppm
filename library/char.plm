@@ -4,6 +4,7 @@ native "../src/ffi/bin/ppm-ffi" {
   is_digit(c: char): bool
   is_whitespace(c: char): bool
   ffi_to_int(c: str): int
+  which(c: str): Option<str>
 }
 
 extend (c: str) {

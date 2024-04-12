@@ -120,3 +120,36 @@ Value ppm_chmod(size_t argc, Module *mod, Value *args) {
   printf("%d\n", ret);
   return MAKE_INTEGER(ret);
 }
+
+Value which(size_t argc, Module *mod, Value *args) {
+  ASSERT_FMT(argc == 1, "Expected 1 argument, but got %zu", argc);
+
+  char *command = args[0].string_value;
+  char *path = getenv("PATH");
+  char *token = strtok(path, ":");
+
+  while (token != NULL) {
+    char *fullpath = malloc(strlen(token) + strlen(command) + 2);
+    sprintf(fullpath, "%s/%s", token, command);
+
+    if (access(fullpath, F_OK) != -1) {
+      free(fullpath);
+      return MAKE_SOME(MAKE_STRING(token));
+    }
+
+    free(fullpath);
+    token = strtok(NULL, ":");
+  }
+
+  return MAKE_NONE();
+}
+
+Value does_directory_exist(size_t argc, Module *mod, Value *args) {
+  ASSERT_FMT(argc == 1, "Expected 1 argument, but got %zu", argc);
+
+  char *dirname = args[0].string_value;
+  DIR *dir = opendir(dirname);
+  if (dir == NULL) return MAKE_INTEGER(0);
+  closedir(dir);
+  return MAKE_INTEGER(1);
+}
