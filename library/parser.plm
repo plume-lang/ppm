@@ -88,6 +88,7 @@ fn string(s: str): Parser<str> =>
       .and_then(fn (_) => pure(s))
     case (None, ?) => pure("")
   }
+  
 
 extend<A> (p: Parser<A>) {
   fn or(q: Parser<A>): Parser<A> =>
@@ -114,11 +115,18 @@ fn clist_to_str(xs: [char]): str =>
     case [x, ..xs] => x.to_str() + xs.clist_to_str()
   }
 
+
+fn take_while(predicate: fn (char): bool): Parser<str> =>
+  satisfy(predicate).many() >>= fn (xs) => pure(xs.clist_to_str())
+  
 alphabetic: Parser<char> = satisfy(is_alphabetic)
 
 identifier: Parser<str> = alphabetic >>= fn (x) =>
   alphabetic.many() >>= fn (xs) =>
     pure(x.to_str() + xs.clist_to_str())
+
+integer: Parser<int> = satisfy(is_digit).many1() >>= fn (xs) =>
+  pure(to_int(xs.clist_to_str()))
 
 spaces: Parser<()> = satisfy(is_whitespace).many() >> pure(unit)
 
@@ -131,6 +139,7 @@ fn choice<A>(ps: [Parser<A>]): Parser<A> =>
 fn sep_by<A, B>(p: Parser<A>, sep: Parser<B>): Parser<[A]> =>
   (p >>= fn (x) => (sep >> p).many() >>= fn (xs) => pure(xs.prepend(x))) 
     or pure([])
+    
 
 infixr 3 <?>
 
