@@ -29,18 +29,21 @@ extend (c: Command) {
     }
 }
 
-parse_option: Parser<Argument> = character('-') >> identifier.map(fn (x) => Option(x))
+
+cli_val: Parser<str> = take_while1(fn (c) => c != ' ' and c != '=')
+
+parse_option: Parser<Argument> = character('-') >> cli_val.map(fn (x) => Option(x))
 parse_binding: Parser<Argument> = identifier >>= fn (name) =>
-  character('=') >> identifier.map(fn (value) => Binding(name, value))
+  character('=') >> cli_val.map(fn (value) => Binding(name, value))
 
 parse_argument: Parser<Argument> = choice([
   parse_option, 
   parse_binding
 ]) <?> "Expected option or binding"
 
-parse_options: Parser<[Argument]> = parse_argument.sep_by(spaces)
+parse_options: Parser<[Argument]> = parse_argument.sep_by(spaces1)
 
-parse_command: Parser<Command> = identifier.optional() >>= fn (name) =>
+parse_command: Parser<Command> = cli_val.optional() >>= fn (name) =>
   spaces >> parse_options.map(fn (arguments) => 
     Command(name, arguments))
 
