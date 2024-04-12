@@ -7,13 +7,10 @@ fn create_config(name: str): str {
   return "name: " + name + "\nversion: 0.1.0" + "\nentry: src/main.plm"
 }
 
-fn cli_init(args: [Argument]): unit {
+fn cli_init(args: [Argument]): int {
   name = args.get_option("name")
   switch name {
-    case None {
-      println("Please provide a name for the project")
-      unit
-    }
+    case None => println("Please provide a name for the project")
     case Some(name) {
       ppm_mkdir(name)
       ppm_mkdir(name + "/src")
@@ -22,9 +19,9 @@ fn cli_init(args: [Argument]): unit {
       ppm_writefile(name + "/plume.config", create_config(name))
 
       println("Project " + name + " created successfully")
-      unit
     }
   }
-  return unit
+  
+  return 1
 }
     
