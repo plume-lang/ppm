@@ -24,11 +24,11 @@ extend (c: Command) {
     switch c {
       case Command(None, arguments) => 
         arguments.map(show).join(" ")
+      case Command(Some(name), []) => name
       case Command(Some(name), arguments) => 
         name + " " + arguments.map(show).join(" ")
     }
 }
-
 
 cli_val: Parser<str> = take_while1(fn (c) => c != ' ' and c != '=')
 
@@ -47,20 +47,18 @@ parse_command: Parser<Command> = cli_val.optional() >>= fn (name) =>
   spaces >> parse_options.map(fn (arguments) => 
     Command(name, arguments))
 
-fn get_option(args: [Argument], name: str): Option<str> {
+fn get_option(args: [Argument], name: str): Option<str> =>
   switch args {
     case [] => None
     case [Binding(n, v), ..rest] => 
       if (n == name) Some(v) else get_option(rest, name)
     case [?, ..rest] => get_option(rest, name)
   }
-}
 
-fn has_flag(args: [Argument], name: str): bool {
+fn has_flag(args: [Argument], name: str): bool =>
   switch args {
     case [] => false
     case [Option(n), ..rest] => 
       if (n == name) true else has_flag(rest, name)
     case [?, ..rest] => has_flag(rest, name)
   }
-}
