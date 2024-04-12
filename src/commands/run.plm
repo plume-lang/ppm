@@ -1,0 +1,39 @@
+require "../cli"
+require "../../library/file"
+require "../config"
+require "../../library/parser"
+require "install"
+require "build"
+
+fn compile(does_compile: bool): Option<str> {
+  if does_compile {
+    config = fetch_config()
+    switch config {
+      case Ok(config) {
+        switch config.get("entry") {
+          case Some(Value(path)) { return Some(path.remove_ext() + ".bin") }
+          case ? { return None }
+        }
+      }
+      case Error(?) { return None }
+    }
+  } else {
+    return build()
+  }
+}
+
+fn run(args: [Argument]) {
+  res = compile(args.has_flag("only-run"))
+
+  switch res {
+    case Some(path) => execute_command("plume " + path)
+    case None => println("Failed to build the project")
+  }
+
+  return None
+}
+
+fn cli_run(args: [Argument]) {
+  run(args)
+  return 0
+}

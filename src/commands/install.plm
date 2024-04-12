@@ -4,15 +4,6 @@ require "../config"
 require "../../library/parser"
 native "../ffi/bin/ppm-ffi" str_split(s: str, del: str): [str]
 
-extend<A> (o: Option<A>) {
-  fn or(other: A): A {
-    switch o {
-      case Some(a) => a
-      case None => other
-    }
-  }
-}
-
 fn remove_ext(file: str): str {
   parts = str_split(file, ".")
   return switch parts {
@@ -65,26 +56,35 @@ fn get_config(files: [str]): Option<str> {
   }
 }
 
-fn cli_install(args: [Argument]) {
-  overrides = args.has_flag("f") or (args.has_flag("force") or false)
+fn fetch_config(): Result<str, Config> {
   config = (get_cwd() or ".") + "/plume.config"
-  if not does_file_exist(config) {
-    println("No plume.config found")
-  } else {
+  if does_file_exist(config) {
     config_content = ppm_readfile(config) or ""
     res = parse_config.eval_parser(config_content)
-    
-    switch res {
-      case Ok(config) {
-        switch config.get("name") {
-          case Some(Value(name)) => create_script_file(name, config, overrides)
-          case Some(_) => println("Name in plume.config is not a string")
-          case None => println("No name found in plume.config")
-        }
-      }
-      case Error(err) => println("Failed to parse: " + err)
+    return switch res {
+      case Ok(config) => Ok(config)
+      case Error(err) => Error(err)
     }
+  } else {
+    return Error("No plume.config found")
   }
+}
+
+fn cli_install(args: [Argument]) {
+  overrides = args.has_flag("f") or (args.has_flag("force") or false)
+  res = fetch_config()
+  
+  switch res {
+    case Ok(config) {
+      switch config.get("name") {
+        case Some(Value(name)) => create_script_file(name, config, overrides)
+        case Some(_) => println("Name in plume.config is not a string")
+        case None => println("No name found in plume.config")
+      }
+    }
+    case Error(err) => println(err)
+  }
+
 
   return 1
 }
