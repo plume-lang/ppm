@@ -5,13 +5,31 @@ require "src/config"
 require "src/cli"
 
 fn default_code(project: str) => "println(\"Hello world from $project\")"
-fn default_config(project: str) => "name = $project\nversion = 0.1.0\nauthor = \ndescription =\n"
+fn default_config(project: str) => "name = $project\nversion = 0.1.0\nauthor = \ndescription =\nmain = main"
+
+cwd = get_cwd().or_else(".")
+file_config = switch ppm_readfile("$cwd/ppm.config") {
+  case Some(content) => parse_config(content)
+  case None => []
+}
+
+fn create_global_script(file: str) => "#!/bin/sh
+plume $file \"$@\""
 
 parse_command_line([
   ("run", fn(_, args) {
-    file = args[0]
+    config_main = get_rule(file_config, "main").map(fn(v) => switch v {
+      case String(value) => value
+      case ? => ""
+    })
+    file = args[0].map(fn (x) => switch x {
+      case PositionalArgument(name) => name
+      case ? => ""
+    })
 
-    switch file {
+    _filename = file or config_main
+
+    switch _filename {
       case Some(filename) => execute_command("plumec $filename.plm && plume $filename.bin")
       case None => 
         println(
@@ -22,9 +40,18 @@ parse_command_line([
   }),
 
   ("build", fn(_, args) {
-    file = args[0]
+    config_main = get_rule(file_config, "main").map(fn(v) => switch v {
+      case String(value) => value
+      case ? => ""
+    })
+    file = args[0].map(fn (x) => switch x {
+      case PositionalArgument(name) => name
+      case ? => ""
+    })
 
-    switch file {
+    _filename = file or config_main
+
+    switch _filename {
       case Some(filename) => execute_command("plumec $filename.plm")
       case None => 
         println(
@@ -42,7 +69,6 @@ parse_command_line([
       })
       .or_else("plume_project")
 
-    cwd = get_cwd().or_else(".")
     project_path = "$cwd/$project_name"
 
     println(
@@ -60,6 +86,74 @@ parse_command_line([
         "[success]: ".colorize(Green).attribute(Bold) 
       + "Project $project_name initialized successfully"
     )
+  }),
+
+  ("install", fn(_, args) {
+    project_name = args[0]
+
+    ppm_path = get_env("PPM_PATH")
+
+    switch ppm_path {
+      case Some(ppm) {
+        switch project_name {
+          case Some(PositionalArgument(name)) {
+            config_file_path = "$cwd/$name/ppm.config"
+
+            switch ppm_readfile(config_file_path) {
+              case Some(content) {
+                special_config = parse_config(content)
+                main_entry = special_config.get_rule("main")
+
+                switch main_entry {
+                  case Some(String(value)) {
+                    execute_command("plumec $cwd/$name/$value.plm")
+                    global_script = create_global_script("$cwd/$name/$value.bin")
+                    ppm_writefile("$ppm/bin/$name", global_script)
+                    execute_command("chmod +x $ppm/bin/$name")
+                  }
+
+                  case ? {
+                    println(
+                        "[error]: ".colorize(Red).attribute(Bold) 
+                      + "No main entry found in $config_file_path"
+                    )
+
+                    unit
+                  }
+                }
+              }
+
+              case None { 
+                println(
+                    "[error]: ".colorize(Red).attribute(Bold) 
+                  + "No ppm.config file found in $config_file_path"
+                )
+
+                unit
+              }
+            }
+          }
+
+          case ? { 
+            println(
+                "[error]: ".colorize(Red).attribute(Bold) 
+              + "Usage: ppm install <project_name>"
+            )
+
+            unit
+          }
+        }
+      }
+
+      case None {
+        println(
+            "[error]: ".colorize(Red).attribute(Bold) 
+          + "PPM_PATH environment variable not set"
+        )
+      
+        unit
+      }
+    }
   }),
 
   ("help", fn(_, _) {
