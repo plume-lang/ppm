@@ -2,22 +2,24 @@ require "commands/types"
 
 type Command = (str, list<Argument>)
 
+cli_value = none_of([' ', '\t', '\n', '\r']).many1()
+
 double_dash = character('-') >> character('-')
 parse_named_argument = double_dash >> identifier >>= fn (name) =>
-  spaces >> identifier.optional() >>= fn (value) => switch value {
+  spaces >> cli_value.optional() >>= fn (value) => switch value {
     case Some(v) => pure(NamedArgument(name.implode(), v.implode()))
     case None => pure(Option(name.implode()))
   }
 
-parse_positional_argument = identifier >>= fn (value) =>
+parse_positional_argument = cli_value >>= fn (value) =>
   pure(PositionalArgument(value.implode()))
 
-parse_option = character('-') >> identifier >>= fn (name) =>
+parse_option = character('-') >> cli_value >>= fn (name) =>
   pure(Option(name.implode()))
 
 parse_argument = parse_named_argument.try() <|> parse_positional_argument <|> parse_option
 
-parse_command = identifier >>= fn (cmd_name) =>
+parse_command = cli_value >>= fn (cmd_name) =>
   spaces >> parse_argument.lex().many() >>= fn (args) =>
     pure((cmd_name.implode(), args))
 
