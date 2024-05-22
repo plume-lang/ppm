@@ -1,174 +1,155 @@
 require "char"
 
-type ParserResult<A> { Result(Result<str, A>, str) }
+type String = list<char>
+type ParserResult<A> = (Result<A, str>, String)
+type Parser<A> { Parser(fn(String): ParserResult<A>) }
 
-type Parser<A> { Parser(fn(str): ParserResult<A>) }
-
-extend (c: str) {
-  fn extract_head(): (Option<char>, str) => (c[0], c[1..])
+interface<M> monadic<M> {
+  fn bind<A, B>(self: M<A>, f: fn(A): M<B>): M<B>
+  fn pure<A>(value: A): M<A>
 }
 
-extend<A> (r: ParserResult<A>) {
-  fn map<B>(f: fn (A): B): ParserResult<B> =>
-    switch r {
-      case Result(r, rest) => Result(r.map(f), rest)
-    }
+infixl 0 >>=
+fn (>>=)<M extends monadic, A, B>(x: M<A>, f: fn(A): M<B>): M<B> => 
+  x.bind(f)
+
+fn and_then<M extends monadic, A, B>(x: M<A>, y: M<B>): M<B> => 
+  x.bind(fn (_) => y)
+
+infixl 1 >>
+fn (>>)<M extends monadic, A, B>(x: M<A>, y: M<B>): M<B> => 
+  x.and_then(y)
+
+infixl 1 <<
+fn (<<)<M extends monadic, A, B>(x: M<A>, y: M<B>): M<A> => 
+  x.bind(fn (a) => y.bind(fn(_) => pure(a)))
+
+fn run_parser<A>(parser: Parser<A>, inp: String): ParserResult<A> {
+  return switch parser {
+    case Parser(f) => f(inp)
+  }
 }
 
-extend<A> (p: Parser<A>) {
-  fn run_parser(input: str): ParserResult<A> =>
-    switch p {
-      case Parser(f) => f(input)
-      case ? => Result(Error("Should not happen"), "")
-    }
-
-  fn eval_parser(input: str): Result<str, A> =>
-    switch p.run_parser(input) {
-      case Result(res, rest) => res
-      case ? => Error("Should not happen")
-    }
+fn parse<A>(parser: Parser<A>, inp: String): Option<A> => switch run_parser(parser, inp) {
+  case (Ok(value), ?) => Some(value)
+  case (?, ?) => None
 }
 
-fn throw_parser(err: str): Parser<A> => 
-  Parser(fn (input) => Result(Error(err), input))
-
-fn throw_result<A>(err: str): ParserResult<A> => 
-  Result(Error(err), "")
-
-fn pure<A>(x: A): Parser<A> =>
-  Parser(fn (input) => Result(Ok(x), input))
-
-extend<A> (p: Parser<A>) {
-  fn and_then<B>(f: fn (A): Parser<B>): Parser<B> =>
-    Parser(fn (input) => switch p.run_parser(input) {
-      case Result(Ok(result), rest) => f(result).run_parser(rest)
-      case Result(Error(err), ?) => Result(Error(err), "")
+extend traversable<Parser> {
+  fn map<A, B>(self: Parser<A>, f: fn(A): B): Parser<B> => 
+    Parser(fn (input) => switch self {
+      case Parser(parser) => switch parser(input) {
+        case (result, rest) => (result.map(f), rest)
+      }
     })
+}
 
-  fn map<B>(f: fn (A): B): Parser<B> =>
-    Parser(fn (input) => p.run_parser(input).map(f))
+extend monadic<Parser> {
+  fn bind<A, B>(self: Parser<A>, f: fn(A): Parser<B>): Parser<B> => 
+    Parser(fn (input) => switch self.run_parser(input) {
+      case (Ok(value), rest) => f(value).run_parser(rest)
+      case (Error(err), rest) => (Error(err), rest)
+    })
   
-  fn try_parse(): Parser<A> => 
-    Parser(fn (input) => switch p.run_parser(input) {
-      case Result(Ok(res), inp) => Result(Ok(res), inp)
-      case Result(Error(err), ?) => Result(Error(err), input)
-    })
+  fn pure<A>(value: A): Parser<A> => 
+    Parser(fn (input) => (Ok(value), input))
 }
 
-infixr 3 >>
-infixr 2 >>=
-
-extend<A> (p: Parser<A>) {
-  fn (>>) <B>(q: Parser<B>): Parser<B> => p.and_then(fn (_) => q)
-
-  fn (>>=) <B>(f: fn (A): Parser<B>): Parser<B> => p.and_then(f)
-}
-
-fn satisfy(predicate: fn (char): bool): Parser<char> =>
-  Parser(fn (input) => 
-    switch input.extract_head() {
-      case (Some(x), xs) => 
-        if predicate(x) { 
-          return Result(Ok(x), xs) 
+fn satisfy(predicate: fn(char): bool): Parser<char> => 
+  Parser(fn (input) {
+    return switch input {
+      case [] => (Error("Unexpected end of input"), [])
+      case [c, ..rest] => {
+        if predicate(c) {
+          return (Ok(c), rest)
         } else {
-          return Result(Error("Unexpected input"), input)
+          return (Error("Unexpected character $c"), input)
         }
-      case (None, ?) => Result(Error("Unexpected end of input"), "")
-    })
+      }
+    }
+  }) 
 
-fn character(c: char): Parser<char> =>
-  Parser(fn (input) => switch input.extract_head() {
-      case (Some(x), xs) => 
-        if x == c { 
-          return Result(Ok(x), xs) 
-        } else {
-          return Result(Error("Unexpected input"), input)
-        }
-      case (None, ?) => Result(Error("Unexpected end of input"), "")
+infixl 6 <|>
+
+fn (<|>)<A>(x: Parser<A>, y: Parser<A>): Parser<A> => 
+  Parser(fn (input) => switch run_parser(x, input) {
+    case (Ok(value), rest) => (Ok(value), rest)
+    case (Error(_), _) => run_parser(y, input)
   })
 
-fn string(s: str): Parser<str> =>
-  switch s.extract_head() {
-    case (Some(x), xs) => character(x)
-      .and_then(fn (_) => string(xs))
-      .and_then(fn (_) => pure(s))
-    case (None, ?) => pure("")
+fn many<A extends equality>(p: Parser<A>): Parser<[A]> =>
+  (p.bind(fn (x) => 
+    p.many().map(fn(xs) => [x] + xs)
+  )) <|> pure([])
+
+fn many1<A extends equality>(p: Parser<A>): Parser<[A]> =>
+  p.bind(fn (x) => many(p).map(fn (xs) => [x] + xs))
+
+fn string(s: String): Parser<String> =>
+  switch s {
+    case [] => pure([])
+    case [c, ..cs] => 
+      satisfy(fn (x) => x == c).bind(fn (_) => string(cs).map(fn (xs) => [c] + xs))
   }
   
+fn character(c: char): Parser<char> => satisfy(fn (x) => x == c)
 
-extend<A> (p: Parser<A>) {
-  fn or(q: Parser<A>): Parser<A> =>
-    Parser(fn (input) => switch p.run_parser(input) {
-      case Result(Ok(result), rest) => Result(Ok(result), rest)
-      case Result(Error(?), ?) => q.run_parser(input)
+space: Parser<char> = satisfy(fn (c) => c == ' ')
+space1: Parser<[char]> = many1(space)
+spaces: Parser<[char]> = many(space)
+
+newline: Parser<char> = satisfy(fn (c) => c == '\n' or c == '\r')
+
+digit: Parser<char> = satisfy(is_digit)
+digits: Parser<String> = many1(digit)
+
+identifier: Parser<String> = 
+  satisfy(is_alphabetic).bind(fn(c) =>
+    many(satisfy(is_alphanumeric)).map(fn(cs) => [c] + cs)
+  )
+
+fn lex<A>(p: Parser<A>): Parser<A> => 
+  spaces >> p << spaces
+
+fn sepBy<A extends equality, B>(p: Parser<A>, sep: Parser<B>): Parser<[A]> =>
+  p.bind(fn(x) => 
+    many(sep.and_then(p)).map(fn(xs) => [x] + xs)
+  ) <|> pure([])
+
+fn sepBy1<A extends equality, B>(p: Parser<A>, sep: Parser<B>): Parser<[A]> =>
+  p.bind(fn(x) => 
+    many(sep.and_then(p)).map(fn(xs) => [x] + xs)
+  )
+
+fn manyTill<A extends equality, B>(p: Parser<A>, end: Parser<B>): Parser<[A]> =>
+  end.bind(fn (_) => pure([])) <|> p.bind(fn(x) => 
+    manyTill(p, end).map(fn(xs) => [x] + xs)
+  )
+
+anything = satisfy(fn (_) => true)
+
+fn try<A>(p: Parser<A>): Parser<A> => 
+  Parser(fn (input) => switch run_parser(p, input) {
+    case (Ok(value), rest) => (Ok(value), rest)
+    case (Error(err), _) => (Error(err), input)
+  })
+
+fn none_of(chars: String): Parser<char> => 
+  satisfy(fn (c) => not (chars.elem(c)))
+
+extend<A extends monoidal> boolean_algebra<Parser<A>> {
+  fn not(self: Parser<A>): Parser<A> => 
+    Parser(fn (input) => switch run_parser(self, input) {
+      case (Ok(_), _) => (Error("Unexpected input"), input)
+      case (Error(_), _) => (Ok(empty()), input)
     })
 
-  fn many(): Parser<[A]> =>
-    (p >>= fn (x) => Parser(fn (input) =>
-      switch p.many().run_parser(input) {
-        case Result(Ok(xs), rest) => Result(Ok(xs.prepend(x)), rest)
-        case Result(Error(?), ?) => Result(Ok([x]), input)
-      })
-    ) or pure([])
-
-  fn many1(): Parser<[A]> => p >>= fn (x) => 
-    p.many() >>= fn (xs) => pure(xs.prepend(x))
-}
-
-fn clist_to_str(xs: [char]): str => 
-  switch xs {
-    case [] => ""
-    case [x, ..xs] => x.to_str() + xs.clist_to_str()
-  }
-
-
-fn take_while(predicate: fn (char): bool): Parser<str> =>
-  satisfy(predicate).many() >>= fn (xs) => pure(xs.clist_to_str())
-
-fn take_while1(predicate: fn (char): bool): Parser<str> =>
-  satisfy(predicate).many1() >>= fn (xs) => pure(xs.clist_to_str())
+  fn and(self: Parser<A>, other: Parser<A>): Parser<A> =>
+    self.bind(fn (_) => other)
   
-alphabetic: Parser<char> = satisfy(is_alphabetic)
-
-identifier: Parser<str> = alphabetic >>= fn (x) =>
-  alphabetic.many() >>= fn (xs) =>
-    pure(x.to_str() + xs.clist_to_str())
-
-integer: Parser<int> = satisfy(is_digit).many1() >>= fn (xs) =>
-  pure(to_int(xs.clist_to_str()))
-
-spaces: Parser<()> = satisfy(is_whitespace).many() >> pure(unit)
-spaces1: Parser<()> = satisfy(is_whitespace).many1() >> pure(unit)
-
-extend<A> (cs: [Parser<A>]) {
-  fn choice(): Parser<A> =>
-    switch cs {
-      case [] => throw_parser("No parser left to choose from")
-      case [p, ..ps] => p.or(choice(ps))
-    }
+  fn or(self: Parser<A>, other: Parser<A>): Parser<A> =>
+    self <|> other
 }
 
-fn sep_by<A, B>(p: Parser<A>, sep: Parser<B>): Parser<[A]> =>
-  (p >>= fn (x) => (sep >> p).many() >>= fn (xs) => pure(xs.prepend(x))) 
-    or pure([])
-    
-
-infixr 3 <?>
-
-extend<A> (p: Parser<A>) {
-  fn (<?>) (msg: str): Parser<A> =>
-    Parser(fn (input) => switch p.run_parser(input) {
-      case Result(Ok(?), ?) => p.run_parser(input)
-      case Result(Error(?), ?) => Result(Error(msg), input)
-    })
-}
-
-fn optional<A>(p: Parser<A>): Parser<Option<A>> => p.map(Some).or(pure(None))
-
-extend<A> (o: Option<A>) {
-  fn or(other: A): A =>
-    switch o {
-      case Some(a) => a
-      case None => other
-    }
-}
+fn optional<A>(p: Parser<A>): Parser<Option<A>> => 
+  p.map(Some) <|> pure(None)

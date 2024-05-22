@@ -1,0 +1,41 @@
+type Color {
+  Black,
+  Red,
+  Green,
+  Yellow,
+  Blue,
+  Magenta,
+  Cyan,
+  White
+}
+
+fn escape(code: int): str => "\ESC[" + code.to_str() + "m"
+
+fn colorize(text: str, color: Color): str => switch color {
+  case Black => escape(30) + text + escape(0)
+  case Red => escape(31) + text + escape(0)
+  case Green => escape(32) + text + escape(0)
+  case Yellow => escape(33) + text + escape(0)
+  case Blue => escape(34) + text + escape(0)
+  case Magenta => escape(35) + text + escape(0)
+  case Cyan => escape(36) + text + escape(0)
+  case White => escape(37) + text + escape(0)
+}
+
+type Attribute {
+  Bold,
+  Dim,
+  Underline,
+  Blink,
+  Reverse,
+  Hidden
+}
+
+fn attribute(text: str, attr: Attribute): str => switch attr {
+  case Bold => escape(1) + text + escape(0)
+  case Dim => escape(2) + text + escape(0)
+  case Underline => escape(4) + text + escape(0)
+  case Blink => escape(5) + text + escape(0)
+  case Reverse => escape(7) + text + escape(0)
+  case Hidden => escape(8) + text + escape(0)
+}
