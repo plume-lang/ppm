@@ -1,23 +1,71 @@
+require "library/parser"
+require "library/file"
+require "library/color"
+require "src/config"
 require "src/cli"
-require "src/commands/init"
-require "src/commands/install"
-require "src/commands/help"
-require "src/commands/build"
-require "src/commands/run"
 
-args = get_args()[2..].join(" ")
+fn default_code(project: str) => "println(\"Hello world from $project\")"
+fn default_config(project: str) => "name = $project\nversion = 0.1.0\nauthor = \ndescription =\n"
 
-res = parse_command.eval_parser(args)
+parse_command_line([
+  ("run", fn(_, args) {
+    file = args[0]
 
-switch res {
-  case Ok(Command(Some(cmd), args)) =>
-    switch cmd {
-      case "init" => cli_init(args)
-      case "install" => cli_install(args)
-      case "build" => cli_build(args)
-      case "run" => cli_run(args)
-      case ? => println("Unknown command: " + cmd)
+    switch file {
+      case Some(filename) => execute_command("plumec $filename.plm && plume $filename.bin")
+      case None => 
+        println(
+            "[error]: ".colorize(Red).attribute(Bold) 
+          + "Usage: ppm run <filename>"
+        )
     }
-  case Ok(Command(None, ?)) => cli_help()
-  case Error(msg) => println("Error while parsing your query command: " + msg)
-}
+  }),
+
+  ("build", fn(_, args) {
+    file = args[0]
+
+    switch file {
+      case Some(filename) => execute_command("plumec $filename.plm")
+      case None => 
+        println(
+            "[error]: ".colorize(Red).attribute(Bold) 
+          + "Usage: ppm build <filename>"
+        )
+    }
+  }),
+
+  ("init", fn(_, args) {
+    project_name = args[0]
+      .map(fn(x) => switch x {
+        case PositionalArgument(name) => name
+        case ? => "plume_project"
+      })
+      .or_else("plume_project")
+
+    cwd = get_cwd().or_else(".")
+    project_path = "$cwd/$project_name"
+
+    println(
+        "[build]: ".colorize(Yellow).attribute(Bold) 
+      + "Creating project "
+      + project_name.attribute(Bold)
+      + " at $project_path"
+    )
+
+    ppm_mkdir(project_path)
+    ppm_writefile("$project_path/main.plm", default_code(project_name))
+    ppm_writefile("$project_path/ppm.config", default_config(project_name))
+
+    println(
+        "[success]: ".colorize(Green).attribute(Bold) 
+      + "Project $project_name initialized successfully"
+    )
+  }),
+
+  ("help", fn(_, _) {
+    println("Usage: ppm <command> [args]")
+    println("Commands:")
+    println("  run <filename>   - compile and run a Plume program")
+    println("  build <filename> - compile a Plume program")
+  })
+])
