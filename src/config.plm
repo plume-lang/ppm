@@ -1,34 +1,82 @@
-require "../library/parser"
-require "../library/char"
+type Value { 
+  Version([int]),
+  String(str)
+}
 
-type Config { Config([(str, str)]) }
+type Rule { Rule(str, Value) }
 
-parse_value: Parser<str> = 
-  satisfy(fn(c) => is_alphanumeric(c) or c == '-' or c == '_' or c == '/' or c == '.')
-    .many1()
-    .map(clist_to_str)
-
-parse_parameter: Parser<(str, str)> = identifier >>= fn (name) =>
-  spaces >> character(':') >> spaces >> parse_value >>= fn (value) =>
-    pure((name, value))
-
-parse_config: Parser<Config> = parse_parameter.sep_by(character('\n')).map(Config)
-
-extend (c: [(str, str)]) {
-  fn get(name: str): Option<str> => switch c {
-    case [] => None
-    case [(n, v), ..rest] => if (n == name) Some(v) else rest.get(name)
+extend equality<Value> {
+  fn (==) (a, b) => switch (a, b) {
+    case (Version(v1), Version(v2)) => v1 == v2
+    case (String(s1), String(s2)) => s1 == s2
+    case ? => false
   }
 }
 
-extend (c: Config) {
-  fn show(): str => switch c {
-    case Config(options) => options
-      .map(fn(tp) => tp.show(show, show))
-      .join("\n")
+extend show<Value> {
+  fn show(v) => switch v {
+    case Version(vs) => vs.map(show).join(".")
+    case String(s) => s
   }
+}
 
-  fn get(name: str): Option<str> => switch c {
-    case Config(options) => options.get(name)
+extend equality<Rule> {
+  fn (==) (a, b) => switch (a, b) {
+    case (Rule(x1, s1), Rule(x2, s2)) => x1 == x2 and s1 == s2
+  }
+}
+
+extend show<Rule> {
+  fn show(r) => switch r {
+    case Rule(x, s) => x + " = " + s.show()
+  }
+}
+
+extend monoidal<Value> {
+  fn empty() => String("")
+  fn concat(a, b) => switch (a, b) {
+    case (String(s1), String(s2)) => String(s1 + s2)
+    case (Version(v1), Version(v2)) => Version(v1 + v2)
+    case ? => String("")
+  }
+}
+
+version = digit
+  .map(fn (d) => ffi_to_int([d].implode()))
+  .sepBy1(character('.'))
+  .map(Version)
+
+st = none_of(['\n', '\r']).many1().map(fn (ds) => String(ds.implode()))
+
+value = version or st
+
+rule = identifier.lex() >>= fn (id) => 
+  character('=') >> value.lex() >>= fn (val) =>
+    pure(Rule(id.implode(), val))
+
+config_parser = rule.sepBy(newline)
+
+fn print_config(path: str) {
+  result = read_file("ppm.config")
+  switch result {
+    case Some(_content) {
+      content = _content.explode()
+      res = config_parser.parse(content)
+
+      switch res {
+        case Some(cs) {
+          fmt = cs.map(show).unlines()
+          println(fmt)
+        }
+
+        case None {  }
+      }
+    }
+    
+    case None => {
+      println("No content found in file")
+
+      unit
+    }
   }
 }
