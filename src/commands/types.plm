@@ -1,0 +1,33 @@
+type Argument {
+  NamedArgument(str, str),
+  PositionalArgument(str),
+  Option(str)
+}
+
+type Handler = fn(str, list<Argument>): unit
+type Handling = list<(str, Handler)>
+
+extend equality<Argument> {
+  fn (==) (a, b) => switch (a, b) {
+    case (NamedArgument(a_name, a_value), NamedArgument(b_name, b_value)) =>
+      a_name == b_name and a_value == b_value
+    case (PositionalArgument(a_value), PositionalArgument(b_value)) => 
+      a_value == b_value
+    case (Option(a_name), Option(b_name)) => 
+      a_name == b_name
+    case (_, _) => false
+  }
+}
+
+extend show<Argument> {
+  fn show(a) => switch (a) {
+    case NamedArgument(name, value) => "--" + name + " " + value
+    case PositionalArgument(value) => value
+    case Option(name) => "-" + name
+  }
+}
+
+extend to_str<Argument> {
+  fn to_str(a: Argument) => show(a)
+}
+
