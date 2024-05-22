@@ -1,64 +1,47 @@
-require "../library/parser"
+require "commands/types"
 
-type Argument {
-  Option(str),
-  Binding(str, str)
-}
+type Command = (str, list<Argument>)
 
-type Command { Command(Option<str>, [Argument]) }
-
-extend (a: Argument) {
-  fn show(): str => switch a {
-    case Option(x) => "-" + x
-    case Binding(name, value) => name + "=" + value
-  }
-}
-
-fn get_name(c: Command): Option<str> => 
-  switch c {
-    case Command(name, _) => name
+double_dash = character('-') >> character('-')
+parse_named_argument = double_dash >> identifier >>= fn (name) =>
+  spaces >> identifier.optional() >>= fn (value) => switch value {
+    case Some(v) => pure(NamedArgument(name.implode(), v.implode()))
+    case None => pure(Option(name.implode()))
   }
 
-extend (c: Command) {
-  fn show(): str => 
-    switch c {
-      case Command(None, arguments) => 
-        arguments.map(show).join(" ")
-      case Command(Some(name), []) => name
-      case Command(Some(name), arguments) => 
-        name + " " + arguments.map(show).join(" ")
+parse_positional_argument = identifier >>= fn (value) =>
+  pure(PositionalArgument(value.implode()))
+
+parse_option = character('-') >> identifier >>= fn (name) =>
+  pure(Option(name.implode()))
+
+parse_argument = parse_named_argument.try() <|> parse_positional_argument <|> parse_option
+
+parse_command = identifier >>= fn (cmd_name) =>
+  spaces >> parse_argument.lex().many() >>= fn (args) =>
+    pure((cmd_name.implode(), args))
+
+fn parse_command_line(cmds: Handling) {
+  args = get_args().slice(2).join(" ").explode()
+  if args.length() == 0 {
+    help_cmd = cmds.find(fn(cmd) => cmd == "help")
+
+    switch help_cmd {
+      case Some(cmd) => cmd("help", [])
+      case None => { println("No help command found") unit }
     }
+  } else {
+    res  = parse_command.run_parser(args)
+  
+    switch res {
+      case (Ok((cmd_name, args)), ?) {
+        switch cmds.find(fn(cmdn) => cmdn == cmd_name) {
+          case Some(cmd) => cmd(cmd_name, args)
+          case None => { println("Command not found") unit }
+        }
+      }
+
+      case (Error(err), ?) { println("ERROR: $err") unit }
+    }
+  }
 }
-
-cli_val: Parser<str> = take_while1(fn (c) => c != ' ' and c != '=')
-
-parse_option: Parser<Argument> = character('-') >> cli_val.map(fn (x) => Option(x))
-parse_binding: Parser<Argument> = identifier >>= fn (name) =>
-  character('=') >> cli_val.map(fn (value) => Binding(name, value))
-
-parse_argument: Parser<Argument> = choice([
-  parse_option, 
-  parse_binding
-]) <?> "Expected option or binding"
-
-parse_options: Parser<[Argument]> = parse_argument.sep_by(spaces1)
-
-parse_command: Parser<Command> = cli_val.optional() >>= fn (name) =>
-  spaces >> parse_options.map(fn (arguments) => 
-    Command(name, arguments))
-
-fn get_option(args: [Argument], name: str): Option<str> =>
-  switch args {
-    case [] => None
-    case [Binding(n, v), ..rest] => 
-      if (n == name) Some(v) else get_option(rest, name)
-    case [?, ..rest] => get_option(rest, name)
-  }
-
-fn has_flag(args: [Argument], name: str): bool =>
-  switch args {
-    case [] => false
-    case [Option(n), ..rest] => 
-      if (n == name) true else has_flag(rest, name)
-    case [?, ..rest] => has_flag(rest, name)
-  }
