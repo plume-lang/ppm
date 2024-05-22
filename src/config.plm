@@ -46,7 +46,7 @@ version = digit
   .sepBy1(character('.'))
   .map(Version)
 
-st = none_of(['\n', '\r']).many1().map(fn (ds) => String(ds.implode()))
+st = none_of(['\n', '\r']).many().map(fn (ds) => String(ds.implode()))
 
 value = version or st
 
@@ -56,6 +56,18 @@ rule = identifier.lex() >>= fn (id) =>
 
 config_parser = rule.sepBy(newline)
 
+type Config = list<Rule>
+
+fn parse_config(content: str): Config => switch config_parser.parse(content.explode()) {
+  case Some(cs) => cs
+  case None => []
+}
+
+fn get_rule(config: Config, key: str): Option<Value> =>
+  config.foldl(fn(acc, rl) => switch rl {
+    case Rule(k, v) => if k == key { Some(v) } else { acc }
+  }, None)
+  
 fn print_config(path: str) {
   result = read_file("ppm.config")
   switch result {
