@@ -1,0 +1,48 @@
+fn create_global_script(file: str) => "#!/bin/sh
+plume $file \"$@\""
+
+fn install_cmd(_, args: list<Argument>) {
+  project_name = args[0]
+    .map(fn(arg) => switch arg {
+      case PositionalArgument(value) => value
+      case ? => "."
+    })
+    .or_else(".")
+
+  ppm_path = get_env("PPM_PATH")
+
+  switch ppm_path {
+    case Some(ppm) {
+      config_file_path = "$cwd/$project_name/ppm.config"
+      config = read_config(config_file_path)
+      main_entry = config >>= fn(c) => c.get_rule("main")
+
+      switch main_entry {
+        case Some(String(value)) {
+          execute_command("plumec $cwd/$project_name/$value.plm")
+          global_script = create_global_script("$cwd/$project_name/$value.bin")
+          ppm_writefile("$ppm/bin/$project_name", global_script)
+          execute_command("chmod +x $ppm/bin/$project_name")
+        }
+
+        case ? {
+          println(
+              "[error]: ".colorize(Red).attribute(Bold) 
+            + "No main entry found in $config_file_path"
+          )
+
+          unit
+        }
+      }
+    }
+
+    case None {
+      println(
+          "[error]: ".colorize(Red).attribute(Bold) 
+        + "PPM_PATH environment variable not set"
+      )
+    
+      unit
+    }
+  }
+}

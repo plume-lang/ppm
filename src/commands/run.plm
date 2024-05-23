@@ -1,0 +1,21 @@
+fn run_cmd(_, args: list<Argument>) {
+  config_main = get_rule(file_config, "main").map(fn(v) => switch v {
+    case String(value) => value
+    case ? => ""
+  })
+  file = args[0].map(fn (x) => switch x {
+    case PositionalArgument(name) => name
+    case ? => ""
+  })
+
+  _filename = file or config_main
+
+  switch _filename {
+    case Some(filename) => execute_command("plumec $filename.plm && plume $filename.bin")
+    case None => 
+      println(
+          "[error]: ".colorize(Red).attribute(Bold) 
+        + "Usage: ppm run <filename>"
+      )
+  }
+}
