@@ -31,23 +31,25 @@ Value execute(size_t argc, Module *mod, Value *args) {
   return MAKE_INTEGER(ret);
 }
 
+
+// Read a file and returns None if the file does not exist or error occurs, otherwise returns Some(contents)
 Value ppm_readfile(size_t argc, Module *mod, Value *args) {
   ASSERT_FMT(argc == 1, "Expected 1 argument, but got %zu", argc);
 
   char *filename = GET_STRING(args[0]);
   FILE *file = fopen(filename, "r");
-  if (file == NULL) MAKE_NONE();
+  if (file == NULL) return MAKE_NONE();
 
   fseek(file, 0, SEEK_END);
-  long size = ftell(file);
+  long length = ftell(file);
   fseek(file, 0, SEEK_SET);
 
-  char *buffer = malloc(size + 1);
-  fread(buffer, 1, size, file);
-  buffer[size] = '\0';
+  char *contents = malloc(length + 1);
+  fread(contents, 1, length, file);
+  contents[length] = '\0';
 
   fclose(file);
-  return MAKE_SOME(MAKE_STRING(buffer, size));
+  return MAKE_SOME(MAKE_STRING(contents, length));
 }
 
 Value ppm_writefile(size_t argc, Module *mod, Value *args) {
