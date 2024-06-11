@@ -1,3 +1,5 @@
+require "pretty"
+
 type Value { 
   Version([int]),
   String(str)
@@ -14,8 +16,8 @@ extend equality<Value> {
 }
 
 extend show<Value> {
-  fn show(v) => switch v {
-    case Version(vs) => vs.map(show).join(".")
+  fn show_prec(v, _) => switch v {
+    case Version(vs) => vs.map(show).join_str(".")
     case String(s) => s
   }
 }
@@ -27,7 +29,7 @@ extend equality<Rule> {
 }
 
 extend show<Rule> {
-  fn show(r) => switch r {
+  fn show_prec(r, _) => switch r {
     case Rule(x, s) => x + " = " + s.show()
   }
 }
@@ -65,11 +67,11 @@ fn parse_config(content: str): Config => switch config_parser.parse(content.expl
 
 fn get_rule(config: Config, key: str): Option<Value> =>
   config.foldl(fn(acc, rl) => switch rl {
-    case Rule(k, v) => if k == key { Some(v) } else { acc }
+    case Rule(k, v) => if k == key { return Some(v) } else { return acc }
   }, None)
   
 fn print_config(path: str) {
-  result = read_file("ppm.config")
+  result = await read_file("ppm.config")
   switch result {
     case Some(_content) {
       content = _content.explode()
@@ -85,24 +87,44 @@ fn print_config(path: str) {
       }
     }
     
-    case None => {
-      println("No content found in file")
-
-      unit
-    }
+    case None => error("File not found")
   }
 }
 
 cwd = get_cwd().or_else(".")
-file_config = switch ppm_readfile("$cwd/ppm.config") {
+file_config = switch await read_file("$cwd/ppm.config") {
   case Some(content) => parse_config(content)
   case None => []
 }
 
+fn seq_opt_async<T>(x: Option<async<T>>): async<Option<T>> {
+  return switch x {
+    case Some(a) {
+      res = await a
+
+      return Some(res).async()
+    }
+    case None => None.async()
+  }
+}
+
+fn get_string(config: Config, key: str): Option<str> {
+  return switch get_rule(config, key) {
+    case Some(String(s)) => Some(s)
+    case ? => None
+  }
+}
+
 fn read_config(path: str): Option<Config> {
-  result = read_file(path)
+  result = await read_file(path)
   return switch result {
     case Some(content) => Some(parse_config(content))
     case None => None
   }
+}
+
+ppm_path = get_env("PPM_PATH")
+ppm_config = switch ppm_path {
+  case Some(path) => await read_config("$path/ppm.config")
+  case None => None
 }
