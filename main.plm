@@ -8,6 +8,7 @@ require "src/commands/run"
 require "src/commands/build"
 require "src/commands/init"
 require "src/commands/install"
+require "src/commands/add"
 
 fn pretty_version(version: Option<Value>): str => switch version {
   case Some(vs) => " - " + ("v" + vs.show()).attribute(Bold)
@@ -18,7 +19,8 @@ cmds = [
   ("run", "compile and run a Plume program"),
   ("build", "compile a Plume program"),
   ("init", "create a new Plume project"),
-  ("install", "install a Plume package"),
+  ("install", "install a Plume package to path"),
+  ("add", "add a new Plume package to your project"),
   ("help", "show this help message")
 ]
 
@@ -27,6 +29,7 @@ parse_command_line([
   ("build", build_cmd),
   ("init", init_cmd),
   ("install", install_cmd),
+  ("add", add_cmd),
   ("help", fn(_, _) {
     version = ppm_config.bind(fn(rs) => rs.get_rule("version"))
 
