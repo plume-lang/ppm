@@ -9,15 +9,25 @@ require "src/commands/build"
 require "src/commands/init"
 require "src/commands/install"
 
+fn pretty_version(version: Option<Value>): str => switch version {
+  case Some(vs) => " - " + ("v" + vs.show()).attribute(Bold)
+  case ? => ""
+}
+
 parse_command_line([
   ("run", run_cmd),
   ("build", build_cmd),
   ("init", init_cmd),
   ("install", install_cmd),
   ("help", fn(_, _) {
-    println("Usage: ppm <command> [args]")
-    println("Commands:")
-    println("  run <filename>   - compile and run a Plume program")
-    println("  build <filename> - compile a Plume program")
+    version = ppm_config.bind(fn(rs) => rs.get_rule("version"))
+
+    println("Plume Project Manager".colorize(Cyan) + version.pretty_version())
+    println("Usage:".colorize(Black) + " ppm <command> [args]")
+    println("Commands:".colorize(Black))
+    println("  run <filename>   " + "- compile and run a Plume program".colorize(Black))
+    println("  build <filename> " + "- compile a Plume program".colorize(Black))
+
+    return unit.async()
   })
 ])
