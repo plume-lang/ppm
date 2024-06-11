@@ -1,4 +1,18 @@
-native "../src/ffi/bin/ppm-ffi" {
+native "native" "../src/ppm-ffi" {
+  is_alphabetic(c: char): bool
+  is_alphanumeric(c: char): bool
+  is_digit(c: char): bool
+  is_whitespace(c: char): bool
+  ffi_to_int(c: str): int
+  str_split(s: str, c: str): [str]
+  which(c: str): Option<str>
+  str_index(s: str, i: int): Option<char>
+  explode(s: str): [char]
+
+  debug<A>(a: A): int
+}
+
+native "js" "../src/ppm-ffi" {
   is_alphabetic(c: char): bool
   is_alphanumeric(c: char): bool
   is_digit(c: char): bool

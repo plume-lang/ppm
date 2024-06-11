@@ -36,14 +36,14 @@ extend monadic<Parser> {
 }
 
 fn satisfy(predicate: fn(char): bool): Parser<char> => 
-  Parser(fn (input) {
-    return switch input {
+  Parser(fn (inp) {
+    return switch inp {
       case [] => (Error("Unexpected end of input"), [])
       case [c, ..rest] => {
         if predicate(c) {
           return (Ok(c), rest)
         } else {
-          return (Error("Unexpected character $c"), input)
+          return (Error("Unexpected character $c"), inp)
         }
       }
     }
