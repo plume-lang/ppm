@@ -1,5 +1,5 @@
 fn create_global_script(file: str) => "#!/bin/sh
-plume $file \"$@\""
+node $file \"$@\""
 
 fn install_cmd(_, args: list<Argument>): async<unit> {
   project_name = args[0]
@@ -16,17 +16,23 @@ fn install_cmd(_, args: list<Argument>): async<unit> {
       config_file_path = "$cwd/$project_name/ppm.config"
       config = await read_config(config_file_path)
       main_entry = config >>= fn(c) => c.get_rule("main")
+      project = (config >>= fn(c) => c.get_rule("name"))
+
+      project_ = switch project {
+        case Some(String(value)) => value
+        case ? => project_name
+      }
 
       switch main_entry {
         case Some(String(value)) {
-          info("Building $project_name")
+          info("Building $project_")
 
           execute_command("plumec $cwd/$project_name/$value.plm")
-          global_script = create_global_script("$cwd/$project_name/$value.bin")
-          ppm_writefile("$ppm/bin/$project_name", global_script)
-          execute_command("chmod +x $ppm/bin/$project_name")
+          global_script = create_global_script("$cwd/$project_name/$value.js")
+          ppm_writefile("$ppm/bin/$project_", global_script)
+          execute_command("chmod +x $ppm/bin/$project_")
 
-          success("Installed $project_name to $ppm/bin/$project_name")
+          success("Installed $project_ to $ppm/bin/$project_")
 
           return unit.async()
         }
