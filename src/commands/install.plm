@@ -2,52 +2,28 @@ fn create_global_script(file: str) => "#!/bin/sh
 node $file \"$@\""
 
 fn install_cmd(_, args: list<Argument>): async<unit> {
-  project_name = args[0]
-    .map(fn(arg) => switch arg {
-      case PositionalArgument(value) => value
-      case ? => "."
-    })
-    .or_else(".")
-
+  project_name = file_config.get_string("name")
+  project_main = file_config.get_string("main")
   ppm_path = get_env("PPM_PATH")
 
-  switch ppm_path {
-    case Some(ppm) {
-      config_file_path = "$cwd/$project_name/ppm.config"
-      config = await read_config(config_file_path)
-      main_entry = config >>= fn(c) => c.get_rule("main")
-      project = (config >>= fn(c) => c.get_rule("name"))
+  return switch (project_name, ppm_path, project_main) {
+    case (Some(name), Some(path), Some(main)) {
+      global_script = create_global_script("$cwd/$main.js")
+      global_script_path = "$path/bin/$name"
 
-      project_ = switch project {
-        case Some(String(value)) => value
-        case ? => project_name
-      }
+      ppm_writefile(global_script_path, global_script)
+      execute_command("chmod +x $global_script_path")
 
-      switch main_entry {
-        case Some(String(value)) {
-          info("Building $project_")
-
-          execute_command("plumec $cwd/$project_name/$value.plm")
-          global_script = create_global_script("$cwd/$project_name/$value.js")
-          ppm_writefile("$ppm/bin/$project_", global_script)
-          execute_command("chmod +x $ppm/bin/$project_")
-
-          success("Installed $project_ to $ppm/bin/$project_")
-
-          return unit.async()
-        }
-
-        case ? {
-          error("No main entry found in $config_file_path")
-          return unit.async()
-        }
-      }
+      return success("Installed $name to $global_script_path").async()
     }
 
-    case None {
-      error("PPM_PATH environment variable not set")
-      
-      return unit.async()
-    }
+    case (None, ?, ?) =>
+      error("No project name found in ppm.config").async()
+
+    case (?, None, ?) =>
+      error("No PPM_PATH found in environment").async()   
+    
+    case (?, ?, None) =>
+      error("No main file found in ppm.config").async()
   }
 }
