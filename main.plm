@@ -14,6 +14,14 @@ fn pretty_version(version: Option<Value>): str => switch version {
   case ? => ""
 }
 
+cmds = [
+  ("run", "compile and run a Plume program"),
+  ("build", "compile a Plume program"),
+  ("init", "create a new Plume project"),
+  ("install", "install a Plume package"),
+  ("help", "show this help message")
+]
+
 parse_command_line([
   ("run", run_cmd),
   ("build", build_cmd),
@@ -25,11 +33,10 @@ parse_command_line([
     println("Plume Project Manager".colorize(Cyan) + version.pretty_version())
     println("Usage:".colorize(Black) + " ppm <command> [args]")
     println("Commands:".colorize(Black))
-    println("  run <filename>   " + "- compile and run a Plume program".colorize(Black))
-    println("  build <filename> " + "- compile a Plume program".colorize(Black))
-    println("  init             " + "- create a new Plume project".colorize(Black))
-    println("  install <pkg>    " + "- install a Plume package".colorize(Black))
-    println("  help             " + "- show this help message".colorize(Black))
+
+    cmds.map(fn case (cmd, desc) => {
+      println("  " + cmd.attribute(Bold) + ": " + desc.colorize(Black))
+    })
 
     return unit.async()
   })
