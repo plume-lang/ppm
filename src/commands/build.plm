@@ -1,4 +1,4 @@
-fn build_cmd(_, args: list<Argument>) {
+fn build_cmd(_, args: list<Argument>): async<unit> {
   config_main = get_rule(file_config, "main").map(fn(v) => switch v {
     case String(value) => value
     case ? => ""
@@ -10,12 +10,19 @@ fn build_cmd(_, args: list<Argument>) {
 
   _filename = file or config_main
 
-  switch _filename {
-    case Some(filename) => execute_command("plumec $filename.plm")
+  return switch _filename {
+    case Some(filename) {
+      if await does_file_exist("$filename.plm") {
+        info("Building $filename.plm")
+        execute_command("plumec $filename.plm")
+        success("Build successful")
+        return unit.async()
+      } else {
+        error("File $filename.plm not found")
+        return unit.async()
+      }
+    }
     case None => 
-      println(
-          "[error]: ".colorize(Red).attribute(Bold) 
-        + "Usage: ppm build <filename>"
-      )
+      error("Usage: ppm build <filename>").async()
   }
 }

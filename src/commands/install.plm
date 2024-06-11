@@ -1,7 +1,7 @@
 fn create_global_script(file: str) => "#!/bin/sh
 plume $file \"$@\""
 
-fn install_cmd(_, args: list<Argument>) {
+fn install_cmd(_, args: list<Argument>): async<unit> {
   project_name = args[0]
     .map(fn(arg) => switch arg {
       case PositionalArgument(value) => value
@@ -14,35 +14,34 @@ fn install_cmd(_, args: list<Argument>) {
   switch ppm_path {
     case Some(ppm) {
       config_file_path = "$cwd/$project_name/ppm.config"
-      config = read_config(config_file_path)
+      config = await read_config(config_file_path)
       main_entry = config >>= fn(c) => c.get_rule("main")
 
       switch main_entry {
         case Some(String(value)) {
+          info("Building $project_name")
+
           execute_command("plumec $cwd/$project_name/$value.plm")
           global_script = create_global_script("$cwd/$project_name/$value.bin")
           ppm_writefile("$ppm/bin/$project_name", global_script)
           execute_command("chmod +x $ppm/bin/$project_name")
+
+          success("Installed $project_name to $ppm/bin/$project_name")
+
+          return unit.async()
         }
 
         case ? {
-          println(
-              "[error]: ".colorize(Red).attribute(Bold) 
-            + "No main entry found in $config_file_path"
-          )
-
-          unit
+          error("No main entry found in $config_file_path")
+          return unit.async()
         }
       }
     }
 
     case None {
-      println(
-          "[error]: ".colorize(Red).attribute(Bold) 
-        + "PPM_PATH environment variable not set"
-      )
-    
-      unit
+      error("PPM_PATH environment variable not set")
+      
+      return unit.async()
     }
   }
 }

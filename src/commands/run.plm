@@ -1,21 +1,45 @@
-fn run_cmd(_, args: list<Argument>) {
+require "../pretty"
+
+fn run_cmd(_, args: list<Argument>): async<unit> {
   config_main = get_rule(file_config, "main").map(fn(v) => switch v {
     case String(value) => value
     case ? => ""
   })
-  file = args[0].map(fn (x) => switch x {
-    case PositionalArgument(name) => name
-    case ? => ""
-  })
+  file = (await args[0]
+    .map(fn (x) => switch x {
+      case PositionalArgument(name) {
+        res = await read_config("$name/ppm.config")
+
+        return res.map(fn(rs) => 
+          rs
+            .get_string("main")
+            .map(fn(v) => "$name/$v")
+        )
+      }
+      case ? => None
+    })
+    .seq_opt_async())
+    .simplify_option()
+    .simplify_option()
 
   _filename = file or config_main
 
   switch _filename {
-    case Some(filename) => execute_command("plumec $filename.plm && plume $filename.bin")
-    case None => 
-      println(
-          "[error]: ".colorize(Red).attribute(Bold) 
-        + "Usage: ppm run <filename>"
-      )
+    case Some(filename) {
+      execute_command("plumec $filename.plm")
+      status = await spawn_process("node", ["$filename.js"])
+
+      switch status {
+        case (?, output) => println(output)
+      }
+      return unit.async()
+    }
+    case None {
+      error("Usage: ppm run <filename> or ppm run")
+
+      return unit.async()
+    }
   }
+
+  return unit.async()
 }

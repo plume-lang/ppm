@@ -4,7 +4,7 @@ type Argument {
   Option(str)
 }
 
-type Handler = fn(str, list<Argument>): unit
+type Handler = fn(str, list<Argument>): async<unit>
 type Handling = list<(str, Handler)>
 
 extend equality<Argument> {
@@ -20,7 +20,7 @@ extend equality<Argument> {
 }
 
 extend show<Argument> {
-  fn show(a) => switch (a) {
+  fn show_prec(a, _) => switch (a) {
     case NamedArgument(name, value) => "--" + name + " " + value
     case PositionalArgument(value) => value
     case Option(name) => "-" + name

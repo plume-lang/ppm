@@ -1,7 +1,7 @@
 fn default_code(project: str) => "println(\"Hello world from $project\")"
 fn default_config(project: str) => "name = $project\nversion = 0.1.0\nauthor = \ndescription =\nmain = main"
 
-fn init_cmd(_, args: list<Argument>) {
+fn init_cmd(_, args: list<Argument>): async<unit> {
   project_name = args[0]
     .map(fn(x) => switch x {
       case PositionalArgument(name) => name
@@ -11,19 +11,13 @@ fn init_cmd(_, args: list<Argument>) {
 
   project_path = "$cwd/$project_name"
 
-  println(
-      "[build]: ".colorize(Yellow).attribute(Bold) 
-    + "Creating project "
-    + project_name.attribute(Bold)
-    + " at $project_path"
-  )
+  info("Creating project " + project_name.attribute(Bold) + " at $project_path")
 
   ppm_mkdir(project_path)
   ppm_writefile("$project_path/main.plm", default_code(project_name))
   ppm_writefile("$project_path/ppm.config", default_config(project_name))
 
-  println(
-      "[success]: ".colorize(Green).attribute(Bold) 
-    + "Project $project_name initialized successfully"
-  )
+  success("Project $project_name initialized successfully")
+
+  return unit.async()
 }
