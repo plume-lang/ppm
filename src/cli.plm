@@ -1,4 +1,5 @@
 require "commands/types"
+require "pretty"
 
 type Command = (str, list<Argument>)
 
@@ -24,26 +25,28 @@ parse_command = cli_value >>= fn (cmd_name) =>
     pure((cmd_name.implode(), args))
 
 fn parse_command_line(cmds: Handling) {
-  args = get_args().slice(2).join(" ").explode()
-  if args.length() == 0 {
+  args = get_args().join_str(" ").explode()
+  if args.len() == 0 {
     help_cmd = cmds.find(fn(cmd) => cmd == "help")
 
     switch help_cmd {
-      case Some(cmd) => cmd("help", [])
-      case None => { println("No help command found") unit }
+      case Some(cmd) => await cmd("help", [])
+      case None => error("No help command found")
     }
   } else {
     res  = parse_command.run_parser(args)
-  
+
     switch res {
       case (Ok((cmd_name, args)), ?) {
         switch cmds.find(fn(cmdn) => cmdn == cmd_name) {
-          case Some(cmd) => cmd(cmd_name, args)
-          case None => { println("Command not found") unit }
+          case Some(cmd) => await cmd(cmd_name, args)
+          case None => error("Command $cmd_name not found")
         }
       }
 
-      case (Error(err), ?) { println("ERROR: $err") unit }
+      case (Error(err), ?) => error(err)
     }
   }
+
+  return unit
 }

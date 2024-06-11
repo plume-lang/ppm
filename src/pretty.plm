@@ -1,0 +1,30 @@
+require "../library/color"
+
+type Level {
+  DebugLevel,
+  InfoLevel,
+  WarningLevel,
+  ErrorLevel,
+  SuccessLevel
+}
+
+extend to_str<Level> {
+  fn to_str(c): str => switch c {
+    case DebugLevel   => "debug"
+    case InfoLevel    => "info"
+    case WarningLevel => "warn"
+    case ErrorLevel   => "error"
+    case SuccessLevel => "success"
+  }
+}
+
+fn pretty<A extends to_str>(level: Level, msg: A, style: (Attribute, Color)) =>
+  switch style {
+    case (attr, col) => println("[$level]".colorize(col).attribute(attr) + ": $msg")
+  }
+
+fn warn(msg: str) => pretty(WarningLevel, msg, (Bold, Yellow))
+fn error(msg: str) => pretty(ErrorLevel, msg, (Bold, Red))
+fn success(msg: str) => pretty(SuccessLevel, msg, (Bold, Green))
+fn info(msg: str) => pretty(InfoLevel, msg, (Bold, Cyan))
+fn debug(msg: str) => pretty(DebugLevel, msg, (Bold, Magenta))
