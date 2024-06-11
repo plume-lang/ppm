@@ -1,16 +1,6 @@
-native "native" "../src/ppm-ffi" {
-  ppm_readfile(path: str): Option<str>
-  ppm_writefile(path: str, data: str): bool 
-  ppm_mkdir(path: str): bool
-  get_cwd(): Option<str>
-  get_env(key: str): Option<str>
-  ppm_chmod(path: str, mode: int): bool
-  does_directory_exist(path: str): bool
-}
-
 type SpawnOutput = (int, str)
 
-native "js" "../src/ppm-ffi" {
+native "js" "ppm-ffi" {
   ppm_writefile(path: str, data: str): bool 
   ppm_mkdir(path: str): bool
   get_cwd(): Option<str>
