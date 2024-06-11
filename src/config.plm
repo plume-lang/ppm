@@ -2,7 +2,8 @@ require "pretty"
 
 type Value { 
   Version([int]),
-  String(str)
+  String(str),
+  List(list<str>)
 }
 
 type Rule { Rule(str, Value) }
@@ -11,6 +12,7 @@ extend equality<Value> {
   fn (==) (a, b) => switch (a, b) {
     case (Version(v1), Version(v2)) => v1 == v2
     case (String(s1), String(s2)) => s1 == s2
+    case (List(l1), List(l2)) => l1 == l2
     case ? => false
   }
 }
@@ -19,6 +21,7 @@ extend show<Value> {
   fn show_prec(v, _) => switch v {
     case Version(vs) => vs.map(show).join_str(".")
     case String(s) => s
+    case List(ls) => ls.join_str(", ")
   }
 }
 
@@ -49,8 +52,11 @@ version = digit
   .map(Version)
 
 st = none_of(['\n', '\r']).many().map(fn (ds) => String(ds.implode()))
+st_ = none_of(['\n', '\r', ',']).many().lex().map(implode)
 
-value = version or st
+lst = st_.sepBy1(character(',')).map(List)
+
+value = lst or version or st
 
 rule = identifier.lex() >>= fn (id) => 
   character('=') >> value.lex() >>= fn (val) =>
@@ -69,7 +75,7 @@ fn get_rule(config: Config, key: str): Option<Value> =>
   config.foldl(fn(acc, rl) => switch rl {
     case Rule(k, v) => if k == key { return Some(v) } else { return acc }
   }, None)
-  
+
 fn print_config(path: str) {
   result = await read_file("ppm.config")
   switch result {
@@ -115,6 +121,13 @@ fn get_string(config: Config, key: str): Option<str> {
   }
 }
 
+fn get_list(config: Config, key: str): Option<list<str>> {
+  return switch get_rule(config, key) {
+    case Some(List(ls)) => Some(ls)
+    case ? => None
+  }
+}
+
 fn read_config(path: str): Option<Config> {
   result = await read_file(path)
   return switch result {
@@ -128,3 +141,19 @@ ppm_config = switch ppm_path {
   case Some(path) => await read_config("$path/ppm.config")
   case None => None
 }
+
+fn without_packages(config: Config): Config =>
+  config.filter(fn (r) => switch r {
+    case Rule("dependencies", ?) => false
+    case ? => true
+  })
+
+fn add_package(config: Config, name: str): Config {
+  packages = config.get_list("dependencies").or_else([])
+  new_config = without_packages(config)
+
+  return new_config + [Rule("dependencies", List(nub(packages + [name])))]
+}
+
+fn get_packages(config: Config): list<str> =>
+  config.get_list("dependencies").or_else([])

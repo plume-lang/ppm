@@ -1,0 +1,84 @@
+fn seq_list_async<A>(xs: list<async<A>>): async<list<A>> {
+  return switch xs {
+    case [] => [].async()
+    case [x, ..xs] => {
+      a = await x
+      as = await seq_list_async(xs)
+      return [a].async()
+    }
+  }
+}
+
+fn concats<A extends equality>(ls: list<list<A>>): list<A> {
+  return switch ls {
+    case [] => []
+    case [x, ..xs] => x + concats(xs)
+  }
+}
+
+fn get_all_packages(config: Config): async<list<str>> {
+  pkgs = config.get_packages()
+
+  all_packages = pkgs.map(fn (pkg) {
+    url = "https://github.com/$pkg"
+    content = await fetch(url)
+    
+    return switch content {
+      case Ok(body) => await get_all_packages(parse_config(body))
+      case Error(?) => []
+    }
+  })
+
+  all_packages_ = await seq_list_async(all_packages)
+
+  return (concats(await all_packages_) + pkgs).async()
+}
+
+fn add_cmd(_, args: list<Argument>): async<unit> {
+  pkg_name = args[0].bind(fn (arg) => switch arg {
+    case PositionalArgument(value) => Some(value)
+    case ? => None
+  })
+  ppm_path = get_env("PPM_PATH")
+
+  config_main = "$cwd/ppm.config"
+
+  return switch (pkg_name, ppm_path) {
+    case (Some(name), Some(path)) {
+      info("Adding package $name")
+
+      pkg_path = "$path/modules/$name"
+
+      execute_command("git clone https://github.com/$name $pkg_path")
+
+      if does_directory_exist(pkg_path) and await does_file_exist(config_main) {
+        new_config = add_package(file_config, name)
+          .map(show)
+          .join_str("\n")
+        ppm_writefile(config_main, new_config)
+
+        pkg_config_path = "$pkg_path/ppm.config"
+
+        return switch await read_file(pkg_config_path) {
+          case Some(config) {
+            package = parse_config(config)
+            all_packages = await get_all_packages(package)
+            ppm_writefile("$cwd/ppm.lock", all_packages.join_str("\n"))
+
+            return unit.async()
+          }
+          case None =>
+            error("Failed to read package config").async()
+        }
+      } else {
+        return error("Failed to clone package").async()
+      }
+
+      
+      return unit.async()
+    }
+
+    case (None, ?) => error("No package name provided").async()
+    case (?, None) => error("PPM_PATH not set").async()
+  }
+}
