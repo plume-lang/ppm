@@ -27,6 +27,9 @@ parse_command_line([
     println("Commands:".colorize(Black))
     println("  run <filename>   " + "- compile and run a Plume program".colorize(Black))
     println("  build <filename> " + "- compile a Plume program".colorize(Black))
+    println("  init             " + "- create a new Plume project".colorize(Black))
+    println("  install <pkg>    " + "- install a Plume package".colorize(Black))
+    println("  help             " + "- show this help message".colorize(Black))
 
     return unit.async()
   })
