@@ -1,4 +1,4 @@
-require "library/parser"
+require "mod:thomasvergne/plume-combinator/parser"
 require "library/file"
 require "library/color"
 require "src/config"
