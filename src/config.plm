@@ -117,6 +117,7 @@ fn seq_opt_async<T>(x: Option<async<T>>): async<Option<T>> {
 fn get_string(config: Config, key: str): Option<str> {
   return switch get_rule(config, key) {
     case Some(String(s)) => Some(s)
+    case Some(List([s])) => Some(s)
     case ? => None
   }
 }
