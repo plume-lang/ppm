@@ -1,3 +1,9 @@
+require "../config"
+require "../../library/file"
+require "std:io/system"
+require "../pretty"
+require "types"
+
 fn create_global_script(file: str) => "#!/bin/sh
 node $file \"$@\""
 

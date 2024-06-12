@@ -1,4 +1,4 @@
-require "../library/color"
+pub require "../library/color"
 
 type Level {
   DebugLevel,

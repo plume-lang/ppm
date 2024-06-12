@@ -1,4 +1,7 @@
 require "../pretty"
+require "types"
+require "../config"
+require "../../library/file"
 
 fn run_cmd(_, args: list<Argument>): async<unit> {
   config_main = get_string(file_config, "main")

@@ -1,4 +1,10 @@
 require "add"
+require "../config"
+require "../../library/file"
+require "../pretty"
+require "std:io/system"
+require "types"
+require "std:io/file"
 
 fn build_packages(ppm_path: str) {
   pkgs = await get_all_packages(file_config)

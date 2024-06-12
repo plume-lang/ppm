@@ -1,3 +1,10 @@
+require "std:io/http"
+require "../config"
+require "../../library/file"
+require "../pretty"
+require "std:io/system"
+require "std:io/file"
+
 fn seq_list_async<A>(xs: list<async<A>>): async<list<A>> {
   return switch xs {
     case [] => [].async()

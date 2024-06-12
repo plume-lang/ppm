@@ -1,4 +1,8 @@
 require "pretty"
+require "mod:thomasvergne/plume-combinator/parser"
+require "mod:thomasvergne/plume-combinator/library/char"
+require "std:io/file"
+require "../library/file"
 
 type Value { 
   Version([int]),
@@ -66,15 +70,31 @@ config_parser = rule.sepBy(newline)
 
 type Config = list<Rule>
 
-fn parse_config(content: str): Config => switch config_parser.parse(content.explode()) {
-  case Some(cs) => cs
-  case None => []
-}
-
 fn get_rule(config: Config, key: str): Option<Value> =>
   config.foldl(fn(acc, rl) => switch rl {
     case Rule(k, v) => if k == key { return Some(v) } else { return acc }
   }, None)
+
+
+fn get_string(config: Config, key: str): Option<str> {
+  return switch get_rule(config, key) {
+    case Some(String(s)) => Some(s)
+    case Some(List([s])) => Some(s)
+    case ? => None
+  }
+}
+
+fn get_list(config: Config, key: str): Option<list<str>> {
+  return switch get_rule(config, key) {
+    case Some(List(ls)) => Some(ls)
+    case ? => None
+  }
+}
+
+fn parse_config(content: str): Config => switch config_parser.parse(content.explode()) {
+  case Some(cs) => cs
+  case None => []
+}
 
 fn print_config(path: str) {
   result = await read_file("ppm.config")
@@ -114,21 +134,6 @@ fn seq_opt_async<T>(x: Option<async<T>>): async<Option<T>> {
   }
 }
 
-fn get_string(config: Config, key: str): Option<str> {
-  return switch get_rule(config, key) {
-    case Some(String(s)) => Some(s)
-    case Some(List([s])) => Some(s)
-    case ? => None
-  }
-}
-
-fn get_list(config: Config, key: str): Option<list<str>> {
-  return switch get_rule(config, key) {
-    case Some(List(ls)) => Some(ls)
-    case ? => None
-  }
-}
-
 fn read_config(path: str): Option<Config> {
   result = await read_file(path)
   return switch result {
@@ -158,3 +163,4 @@ fn add_package(config: Config, name: str): Config {
 
 fn get_packages(config: Config): list<str> =>
   config.get_list("dependencies").or_else([])
+  

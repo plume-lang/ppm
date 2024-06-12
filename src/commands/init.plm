@@ -1,3 +1,8 @@
+require "../config"
+require "../pretty"
+require "../../library/file"
+require "types"
+
 fn default_code(project: str) => "println(\"Hello world from $project\")"
 fn default_config(project: str) => "name = $project\nversion = 0.1.0\nauthor = \ndescription =\nmain = main"
 

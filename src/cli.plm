@@ -1,5 +1,7 @@
 require "commands/types"
 require "pretty"
+require "mod:thomasvergne/plume-combinator/parser"
+require "std:io/system"
 
 type Command = (str, list<Argument>)
 
