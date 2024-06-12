@@ -62,7 +62,7 @@ fn add_cmd(_, args: list<Argument>): async<unit> {
         return switch await read_file(pkg_config_path) {
           case Some(config) {
             package = parse_config(config)
-            all_packages = await get_all_packages(package)
+            all_packages = [name] + await get_all_packages(package)
             ppm_writefile("$cwd/ppm.lock", all_packages.join_str("\n"))
 
             return unit.async()
