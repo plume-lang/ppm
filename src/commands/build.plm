@@ -1,9 +1,34 @@
+require "add"
+
+fn build_packages(ppm_path: str) {
+  pkgs = await get_all_packages(file_config)
+
+  pkgs.map(fn (pkg) {
+    url = "https://github.com/$pkg"
+    pkg_path = "$ppm_path/modules/$pkg"
+
+    if does_directory_exist(pkg_path) {
+      info("Already installed $pkg")
+      return unit
+    } else { 
+      res = execute_command("git clone $url $pkg_path")
+
+      if res != 0 {
+        error("Failed to clone $url")
+      } else {
+        info("Installed $pkg")
+      }
+    }
+  })
+}
+
 fn build_cmd(_, args: list<Argument>): async<unit> {
   config_main = get_string(file_config, "main")
-
-  return switch config_main {
-    case Some(filename) {
+    
+  return switch (config_main, get_env("PPM_PATH")) {
+    case (Some(filename), Some(path)) {
       if await does_file_exist("$filename.plm") {
+        await build_packages(path)
         res = await spawn_process("plumec", ["$filename.plm"])
         println(res.snd())
         return unit.async()
@@ -12,7 +37,11 @@ fn build_cmd(_, args: list<Argument>): async<unit> {
         return unit.async()
       }
     }
-    case None => 
+
+    case (None, ?) => 
       error("No ppm.config file found").async()
+    
+    case (?, None) =>
+      error("PPM_PATH not set").async()
   }
 }
