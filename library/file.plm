@@ -7,6 +7,7 @@ native "js" "ppm-ffi" {
   get_env(key: str): Option<str>
   ppm_chmod(path: str, mode: int): bool
   does_directory_exist(path: str): bool
+  does_file_exist_sync(path: str): bool
 
   spawn_process(command: str, arguments: list<str>): async<SpawnOutput>
 }

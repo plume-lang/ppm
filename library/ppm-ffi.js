@@ -58,6 +58,10 @@ module.exports = {
     return fs.existsSync(path) && fs.lstatSync(path).isDirectory();
   },
 
+  does_file_exist_sync(path) {
+    return fs.existsSync(path) && fs.lstatSync(path).isFile();
+  },
+
   async spawn_process(cmd, args) {
     return new Promise((resolve, reject) => {
       const child = child_process.spawn(cmd, args);
@@ -76,7 +80,7 @@ module.exports = {
         if (code === 0) {
           resolve([null, 'tuple', 'tuple', code, stdout.trim()]);
         } else {
-          reject([null, 'tuple', 'tuple', code, stderr]);
+          resolve([null, 'tuple', 'tuple', code, stdout.trim()]);
         }
       });
     });
