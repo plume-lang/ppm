@@ -1,4 +1,4 @@
-type SpawnOutput = (int, str)
+type SpawnOutput = (int, str, str)
 
 native "js" "ppm-ffi" {
   ppm_writefile(path: str, data: str): bool 
@@ -10,4 +10,6 @@ native "js" "ppm-ffi" {
   does_file_exist_sync(path: str): bool
 
   spawn_process(command: str, arguments: list<str>): async<SpawnOutput>
+  spawn_process_callback(command: str, arguments: list<str>, callback: fn(str): unit): async<SpawnOutput>
+  spawn_process_to_terminal(command: str, arguments: list<str>): async<SpawnOutput>
 }
