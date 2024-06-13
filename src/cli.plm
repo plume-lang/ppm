@@ -52,3 +52,14 @@ fn parse_command_line(cmds: Handling) {
 
   return unit
 }
+
+fn get_option(args: list<Argument>, name: str): Option<str> =>
+  switch args {
+    case [] => None
+    case [x, ..xs] => switch x {
+      case NamedArgument(n, v) => 
+        if n == name { return Some(v) } else { return xs.get_option(name) }
+      case ? => 
+        get_option(xs, name)
+    }
+  }
