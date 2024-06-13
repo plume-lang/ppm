@@ -11,17 +11,13 @@ fn run_cmd(_, args: list<Argument>): async<unit> {
       status_compil = await spawn_process("plumec", ["$filename.plm"])
 
       switch status_compil {
-        case (0, _) => unit.async()
-        case (_, output) {
-          return println(output).async()
+        case (0, ?, ?) => unit.async()
+        case (?, output, ?) {
+          return print(output).async()
         }
       }
 
-      status = await spawn_process("node", ["$filename.js"])
-
-      switch status {
-        case (?, output) => println(output)
-      }
+      status = await spawn_process_to_terminal("node", ["$filename.js"])
     }
     case None => error("No main file specified in config file").async()
   }
