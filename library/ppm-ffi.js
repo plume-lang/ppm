@@ -1,44 +1,14 @@
-function None() {
-  return [null, 'Option', 'None'];
+function createDatatype(datatypeName, variantName) {
+  return (...values) => [null, datatypeName, variantName, ...values];
 }
+
+const None = createDatatype('Option', 'None');
+const Some = createDatatype('Option', 'Some');
 
 const child_process = require('child_process');
-
-function Some(x) {
-  return [null, 'Option', 'Some', x];
-}
-
 const fs = require('fs');
 
 module.exports = {
-  is_alphabetic: (c) => 
-    /[a-zA-Z]/.test(c),
-  is_digit: (c) =>
-    /[0-9]/.test(c),
-  is_alphanumeric: (c) =>
-    /[a-zA-Z]|[0-9]/.test(c),
-  is_whitespace: (c) =>
-    /\s/.test(c),
-  ffi_to_int: (s) => parseInt(s),
-  str_split: (s, sep) => s.split(sep),
-  which: (s) => {
-    const fs = require('fs');
-    return fs.existsSync(s) ? s : '';
-  },
-  str_index(s, i) {
-    if (i < 0 || i >= s.length) {
-      return None();
-    }
-
-    return Some(s[i]);
-  },
-
-  explode(s) {
-    return s.split('');
-  },
-
-  debug: (s) => console.log(s),
-
   ppm_writefile: (path, content) => {
     fs.writeFileSync(path, content);
   },
@@ -63,7 +33,7 @@ module.exports = {
   },
 
   async spawn_process(cmd, args) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const child = child_process.spawn(cmd, args);
       let stdout = '';
       let stderr = '';
