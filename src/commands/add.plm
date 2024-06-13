@@ -52,11 +52,16 @@ fn add_cmd(_, args: list<Argument>): async<unit> {
 
   return switch (pkg_name, ppm_path) {
     case (Some(name), Some(path)) {
-      info("Adding package $name")
 
       pkg_path = "$path/modules/$name"
 
-      execute_command("git clone https://github.com/$name $pkg_path")
+      if does_directory_exist(pkg_path) {
+        info("Updating package $name")
+        execute_command("git -C $pkg_path pull")
+      } else {
+        info("Adding package $name")
+        execute_command("git clone https://github.com/$name $pkg_path")
+      }
 
       if does_directory_exist(pkg_path) and await does_file_exist(config_main) {
         new_config = add_package(file_config, name)

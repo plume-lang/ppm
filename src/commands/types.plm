@@ -15,7 +15,7 @@ extend equality<Argument> {
       a_value == b_value
     case (Option(a_name), Option(b_name)) => 
       a_name == b_name
-    case (_, _) => false
+    case ? => false
   }
 }
 
