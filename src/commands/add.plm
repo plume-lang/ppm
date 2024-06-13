@@ -72,19 +72,11 @@ fn add_cmd(_, args: list<Argument>): async<unit> {
           .join_str("\n")
         ppm_writefile(config_main, new_config)
 
-        pkg_config_path = "$pkg_path/ppm.config"
+        package = parse_config(new_config)
+        all_packages = await get_all_packages(package)
+        ppm_writefile("$cwd/ppm.lock", all_packages.join_str("\n"))
 
-        return switch await read_file(pkg_config_path) {
-          case Some(config) {
-            package = parse_config(config)
-            all_packages = [name] + await get_all_packages(package)
-            ppm_writefile("$cwd/ppm.lock", all_packages.join_str("\n"))
-
-            return unit.async()
-          }
-          case None =>
-            error("Failed to read package config").async()
-        }
+        return unit.async()
       } else {
         return error("Failed to clone package").async()
       }
