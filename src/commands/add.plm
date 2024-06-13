@@ -46,14 +46,17 @@ fn add_cmd(_, args: list<Argument>): async<unit> {
     case PositionalArgument(value) => Some(value)
     case ? => None
   })
+
+  alias = args.get_option("as") or pkg_name
+
   ppm_path = get_env("PPM_PATH")
 
   config_main = "$cwd/ppm.config"
 
-  return switch (pkg_name, ppm_path) {
-    case (Some(name), Some(path)) {
+  return switch (pkg_name, ppm_path, alias) {
+    case (Some(name), Some(path), Some(pkg_alias)) {
 
-      pkg_path = "$path/modules/$name"
+      pkg_path = "$path/modules/$pkg_alias"
 
       if does_directory_exist(pkg_path) {
         info("Updating package $name")
@@ -90,7 +93,8 @@ fn add_cmd(_, args: list<Argument>): async<unit> {
       return unit.async()
     }
 
-    case (None, ?) => error("No package name provided").async()
-    case (?, None) => error("PPM_PATH not set").async()
+    case (None, ?, ?) => error("No package name provided").async()
+    case (?, None, ?) => error("PPM_PATH not set").async()
+    case (?, ?, None) => error("No package provided").async()
   }
 }
