@@ -5,6 +5,9 @@ require "../../library/file"
 
 fn run_cmd(_, args: list<Argument>): async<unit> {
   config_main = get_string(file_config, "main")
+  interpreter_config = get_string(file_config, "interpreter")
+
+  interpreter = (interpreter_config or args.get_option("e")).or_else("native")
 
   return switch config_main {
     case Some(filename) {
@@ -17,7 +20,21 @@ fn run_cmd(_, args: list<Argument>): async<unit> {
         }
       }
 
-      status = await spawn_process_to_terminal("node", ["$filename.js"])
+      switch interpreter {
+        case "native" { 
+          await spawn_process_to_terminal("plume", ["$filename.bin"])
+
+          return unit.async()
+        }
+        
+        case "js" {
+          await spawn_process_to_terminal("node", ["$filename.js"])
+
+          return unit.async()
+        }
+
+        case ? => error("Unknown interpreter").async()
+      }
     }
     case None => error("No main file specified in config file").async()
   }
