@@ -1,4 +1,4 @@
-require "std:io/http"
+require "std:io/http-js"
 require "../config"
 require "../../library/file"
 require "../pretty"

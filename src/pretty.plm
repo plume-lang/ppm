@@ -8,8 +8,8 @@ type Level {
   SuccessLevel
 }
 
-extend to_str<Level> {
-  fn to_str(c): str => switch c {
+extend show<Level> {
+  fn show_prec(c, _): str => switch c {
     case DebugLevel   => "debug"
     case InfoLevel    => "info"
     case WarningLevel => "warn"
@@ -18,7 +18,7 @@ extend to_str<Level> {
   }
 }
 
-fn pretty<A extends to_str>(level: Level, msg: A, style: (Attribute, Color)) =>
+fn pretty<A extends show>(level: Level, msg: A, style: (Attribute, Color)) =>
   switch style {
     case (attr, col) => println("[$level]".colorize(col).attribute(attr) + ": $msg")
   }

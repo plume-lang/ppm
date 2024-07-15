@@ -3,6 +3,7 @@ require "mod:thomasvergne/plume-combinator/parser"
 require "mod:thomasvergne/plume-combinator/library/char"
 require "std:io/file"
 require "../library/file"
+require "std:io/async-js"
 
 type Value { 
   Version([int]),

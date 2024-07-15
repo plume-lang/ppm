@@ -1,4 +1,4 @@
-type SpawnOutput = (int, str, str)
+type SpawnOutput = (int, str)
 
 native "js" "ppm-ffi" {
   ppm_writefile(path: str, data: str): bool 

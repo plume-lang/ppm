@@ -56,7 +56,7 @@ module.exports = {
       });
 
       child.on('close', (code) => 
-        resolve(tuple(code, stdout.trim(), stderr.trim()))
+        resolve(tuple(code, stdout.trim()))
       );
     });
   },
