@@ -48,13 +48,13 @@ extend default<Value> {
 
 version = digit
   .map(fn (d) => ffi_to_int([d].implode()))
-  .sepBy1(character('.'))
+  .sep_by_1(character('.'))
   .map(Version)
 
 st = none_of(['\n', '\r']).many().map(fn (ds) => String(ds.implode()))
 st_ = none_of(['\n', '\r', ',']).many().lex().map(implode)
 
-lst = st_.sepBy1(character(',')).map(List)
+lst = st_.sep_by_1(character(',')).map(List)
 
 value = lst or version or st
 
@@ -62,7 +62,7 @@ rule = identifier.lex() >>= fn (id) =>
   character('=') >> value.lex() >>= fn (val) =>
     pure(Rule(id.implode(), val))
 
-config_parser = rule.sepBy(newline)
+config_parser = rule.sep_by(newline)
 
 type Config = list<Rule>
 

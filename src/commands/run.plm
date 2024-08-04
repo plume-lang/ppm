@@ -11,8 +11,11 @@ fn run_cmd(_, args: list<Argument>): async<unit> {
 
   return switch config_main {
     case Some(filename) {
-      status_compil = await spawn_process("plumec", ["$filename.plm", if interpreter == "js" "--js" else ""])
-
+      status_compil = await spawn_process(
+        "plumec", 
+        ["$filename.plm"] + if interpreter == "js" then ["-e", "js"] else []
+      )
+      
       switch status_compil {
         case (0, ?) => unit.async()
         case (?, output) {
