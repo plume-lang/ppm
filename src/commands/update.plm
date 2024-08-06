@@ -1,0 +1,25 @@
+require "../../library/file"
+require "../pretty"
+require "std:io/system"
+
+async fn update_cmd(_, args: list<Argument>): unit {
+  path = get_env("PLUME_PATH")
+
+  switch path {
+    case Some(plume_path) {
+      if does_directory_exist(plume_path) {
+        info("Updating standard library")
+        execute_command("git pull")
+      } else {
+        info("Cloning standard library")
+        execute_command("git clone https://github.com/plume-lang/standard.git $plume_path")
+      }
+
+      success("Correctly updated standard library")
+    }
+
+    case None => error("No PLUME_PATH variable found in environment")
+  }
+
+  return unit
+}
