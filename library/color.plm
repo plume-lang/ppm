@@ -9,7 +9,7 @@ type Color {
   White
 }
 
-fn escape(code: int): str => "\ESC[" + code.to_str() + "m"
+fn escape(code: int): str => "\ESC[" + code.show() + "m"
 
 fn colorize(text: str, color: Color): str => switch color {
   case Black => escape(30) + text + escape(0)
