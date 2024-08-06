@@ -9,6 +9,7 @@ require "src/commands/build"
 require "src/commands/init"
 require "src/commands/install"
 require "src/commands/add"
+require "src/commands/update"
 
 fn pretty_version(version: Option<Value>): str => switch version {
   case Some(vs) => " - " + ("v" + vs.show()).attribute(Bold)
@@ -21,8 +22,23 @@ cmds = [
   ("init", "create a new Plume project"),
   ("install", "install a Plume package to path"),
   ("add", "add a new Plume package to your project"),
+  ("update-std", "update the standard library to latest commit"),
   ("help", "show this help message")
 ]
+
+async fn help_cmd(_, _) {
+  version = ppm_config.bind(fn(rs) => rs.get_rule("version"))
+
+  println("Plume Project Manager".colorize(Cyan) + version.pretty_version())
+  println("Usage:".colorize(Black) + " ppm <command> [args]")
+  println("Commands:".colorize(Black))
+
+  cmds.map(fn case (cmd, desc) => {
+    println("  " + cmd.attribute(Bold) + ": " + desc.colorize(Black))
+  })
+
+  return unit
+}
 
 parse_command_line([
   ("run", run_cmd),
@@ -30,17 +46,6 @@ parse_command_line([
   ("init", init_cmd),
   ("install", install_cmd),
   ("add", add_cmd),
-  ("help", fn(_, _) {
-    version = ppm_config.bind(fn(rs) => rs.get_rule("version"))
-
-    println("Plume Project Manager".colorize(Cyan) + version.pretty_version())
-    println("Usage:".colorize(Black) + " ppm <command> [args]")
-    println("Commands:".colorize(Black))
-
-    cmds.map(fn case (cmd, desc) => {
-      println("  " + cmd.attribute(Bold) + ": " + desc.colorize(Black))
-    })
-
-    return unit.async()
-  })
+  ("update-std", update_cmd),
+  ("help", help_cmd)
 ])
