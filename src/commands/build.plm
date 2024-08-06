@@ -7,7 +7,7 @@ require "types"
 require "std:io/file"
 
 fn build_packages(ppm_path: str) {
-  pkgs = await get_all_packages(file_config)
+  pkgs = get_all_packages(file_config)
 
   pkgs.map(fn (pkg) {
     url = "https://github.com/$pkg"
@@ -28,7 +28,7 @@ fn build_packages(ppm_path: str) {
   })
 }
 
-fn build_cmd(_, args: list<Argument>): async<unit> {
+fn build_cmd(_, args: list<Argument>): unit {
   config_main = get_string(file_config, "main")
   interpreter_config = get_string(file_config, "interpreter")
 
@@ -36,21 +36,21 @@ fn build_cmd(_, args: list<Argument>): async<unit> {
     
   return switch (config_main, get_env("PPM_PATH")) {
     case (Some(filename), Some(path)) {
-      if await does_file_exist("$filename.plm") {
-        await build_packages(path)
-        res = await spawn_process("plumec", ["$filename.plm", "-e", interpreter])
+      if does_file_exist("$filename.plm") {
+        build_packages(path)
+        res = spawn_process("plumec", ["$filename.plm", "-e", interpreter])
         println(res.snd())
-        return unit.async()
+        return unit
       } else {
         error("File $filename.plm not found")
-        return unit.async()
+        return unit
       }
     }
 
     case (None, ?) => 
-      error("No ppm.config file found").async()
+      error("No ppm.config file found")
     
     case (?, None) =>
-      error("PPM_PATH not set").async()
+      error("PPM_PATH not set")
   }
 }

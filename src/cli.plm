@@ -32,7 +32,7 @@ fn parse_command_line(cmds: Handling) {
     help_cmd = cmds.find(fn(cmd) => cmd == "help")
 
     switch help_cmd {
-      case Some(cmd) => await cmd("help", [])
+      case Some(cmd) => cmd("help", [])
       case None => error("No help command found")
     }
   } else {
@@ -41,7 +41,7 @@ fn parse_command_line(cmds: Handling) {
     switch res {
       case (Ok((cmd_name, args)), ?) {
         switch cmds.find(fn(cmdn) => cmdn == cmd_name) {
-          case Some(cmd) => await cmd(cmd_name, args)
+          case Some(cmd) => cmd(cmd_name, args)
           case None => error("Command $cmd_name not found")
         }
       }

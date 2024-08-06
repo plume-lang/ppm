@@ -93,7 +93,7 @@ fn parse_config(content: str): Config => switch config_parser.parse(content.expl
 }
 
 fn print_config(path: str) {
-  result = await read_file("ppm.config")
+  result = read_file("ppm.config")
   switch result {
     case Some(_content) {
       content = _content.explode()
@@ -111,27 +111,29 @@ fn print_config(path: str) {
     
     case None => error("File not found")
   }
+
+  return unit
 }
 
 cwd = get_cwd().or_else(".")
-file_config = switch await read_file("$cwd/ppm.config") {
+file_config = switch read_file("$cwd/ppm.config") {
   case Some(content) => parse_config(content)
   case None => []
 }
 
-fn seq_opt_async<T>(x: Option<async<T>>): async<Option<T>> {
+fn seq_opt_async<T>(x: Option<async<T>>): Option<T> {
   return switch x {
     case Some(a) {
       res = await a
 
-      return Some(res).async()
+      return Some(res)
     }
-    case None => None.async()
+    case None => None
   }
 }
 
 fn read_config(path: str): Option<Config> {
-  result = await read_file(path)
+  result = read_file(path)
   return switch result {
     case Some(content) => Some(parse_config(content))
     case None => None
@@ -140,7 +142,7 @@ fn read_config(path: str): Option<Config> {
 
 ppm_path = get_env("PPM_PATH")
 ppm_config = switch ppm_path {
-  case Some(path) => await read_config("$path/ppm.config")
+  case Some(path) => read_config("$path/ppm.config")
   case None => None
 }
 

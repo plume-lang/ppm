@@ -27,7 +27,4 @@ extend show<Argument> {
   }
 }
 
-extend to_str<Argument> {
-  fn to_str(a: Argument) => show(a)
-}
 
