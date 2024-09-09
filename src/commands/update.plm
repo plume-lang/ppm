@@ -9,7 +9,7 @@ async fn update_cmd(_, args: list<Argument>): unit {
     case Some(plume_path) {
       if does_directory_exist(plume_path) {
         info("Updating standard library")
-        execute_command("cd $plume_path && git pull")
+        execute_command("cd $plume_path && git pull origin main")
       } else {
         info("Cloning standard library")
         execute_command("git clone https://github.com/plume-lang/standard.git $plume_path")
