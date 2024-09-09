@@ -26,7 +26,7 @@ parse_command = cli_value >>= fn (cmd_name) =>
   spaces >> parse_argument.lex().many() >>= fn (args) =>
     pure((cmd_name.implode(), args))
 
-fn parse_command_line(cmds: Handling) {
+fn parse_command_line(cmds: Handling): unit {
   args = get_args().join_str(" ").explode()
   if args.len() == 0 {
     help_cmd = cmds.find(fn(cmd) => cmd == "help")

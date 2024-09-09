@@ -5,6 +5,15 @@ require "std:io/file"
 require "../library/file"
 require "std:io/async-js"
 
+fn join_str(ls: list<str>, sep: str): str =>
+  switch ls {
+    case [] => ""
+    case [x] => x
+    case [x, ..xs] => x + sep + join_str(xs, sep)
+  }
+
+fn unlines(ls: list<str>): str => join_str(ls, "\n")
+
 type Value { 
   Version([int]),
   String(str),
@@ -92,7 +101,7 @@ fn parse_config(content: str): Config => switch config_parser.parse(content.expl
   case None => []
 }
 
-fn print_config(path: str) {
+fn print_config(path: str): unit {
   result = read_file("ppm.config")
   switch result {
     case Some(_content) {

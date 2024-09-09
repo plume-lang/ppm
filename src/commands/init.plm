@@ -3,10 +3,10 @@ require "../pretty"
 require "../../library/file"
 require "types"
 
-fn default_code(project: str) => "println(\"Hello world from $project\")"
-fn default_config(project: str) => "name = $project\nversion = 0.1.0\nauthor = \ndescription =\nmain = main"
+fn default_code(project: str): str => "println(\"Hello world from $project\")"
+fn default_config(project: str): str => "name = $project\nversion = 0.1.0\nauthor = \ndescription =\nmain = main"
 
-async fn init_cmd(_, args: list<Argument>): unit {
+async fn init_cmd(_: str, args: list<Argument>): unit {
   project_name = args[0]
     .map(fn(x) => switch x {
       case PositionalArgument(name) => name

@@ -4,7 +4,7 @@ require "std:io/system"
 require "../pretty"
 require "types"
 
-fn create_global_script(file: str) => "#!/bin/sh
+fn create_global_script(file: str): str => "#!/bin/sh
 node $file \"$@\""
 
 async fn install_cmd(_, args: list<Argument>): unit {

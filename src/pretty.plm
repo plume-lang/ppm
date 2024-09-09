@@ -18,13 +18,13 @@ extend show<Level> {
   }
 }
 
-fn pretty<A extends show>(level: Level, msg: A, style: (Attribute, Color)) =>
+fn pretty<A extends show>(level: Level, msg: A, style: (Attribute, Color)): unit =>
   switch style {
     case (attr, col) => println("[$level]".colorize(col).attribute(attr) + ": $msg")
   }
 
-fn warn(msg: str) => pretty(WarningLevel, msg, (Bold, Yellow))
-fn error(msg: str) => pretty(ErrorLevel, msg, (Bold, Red))
-fn success(msg: str) => pretty(SuccessLevel, msg, (Bold, Green))
-fn info(msg: str) => pretty(InfoLevel, msg, (Bold, Cyan))
-fn debug(msg: str) => pretty(DebugLevel, msg, (Bold, Magenta))
+fn warn(msg: str): unit => pretty(WarningLevel, msg, (Bold, Yellow))
+fn error(msg: str): unit => pretty(ErrorLevel, msg, (Bold, Red))
+fn success(msg: str): unit => pretty(SuccessLevel, msg, (Bold, Green))
+fn info(msg: str): unit => pretty(InfoLevel, msg, (Bold, Cyan))
+fn debug(msg: str): unit => pretty(DebugLevel, msg, (Bold, Magenta))

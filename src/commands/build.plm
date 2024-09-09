@@ -6,7 +6,7 @@ require "std:io/system"
 require "types"
 require "std:io/file"
 
-fn build_packages(ppm_path: str) {
+fn build_packages(ppm_path: str): unit {
   pkgs = get_all_packages(file_config)
 
   pkgs.map(fn (pkg) {
@@ -28,7 +28,7 @@ fn build_packages(ppm_path: str) {
   })
 }
 
-fn build_cmd(_, args: list<Argument>): unit {
+fn build_cmd(_: str, args: list<Argument>): unit {
   config_main = get_string(file_config, "main")
   interpreter_config = get_string(file_config, "interpreter")
 
