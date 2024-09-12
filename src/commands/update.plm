@@ -20,6 +20,4 @@ async fn update_cmd(_, args: list<Argument>): unit {
 
     case None => error("No PLUME_PATH variable found in environment")
   }
-
-  return unit
 }
