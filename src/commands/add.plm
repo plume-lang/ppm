@@ -31,52 +31,62 @@ fn get_all_packages(config: Config): list<str> {
   return packages
 }
 
+fn get_all_packages_from(package: str): list<str> {
+  url = "https://raw.githubusercontent.com/$package/main/ppm.config"
+
+  content = fetch(url)
+
+  return switch content {
+    case Ok(body) => [package] + get_all_packages(parse_config(body))
+    case Error(?) => []
+  }
+}
+
 async fn add_cmd(_, args: list<Argument>): unit {
   pkg_name = args[0].bind(fn (arg) => switch arg {
     case PositionalArgument(value) => Some(value)
     case ? => None
   })
 
-  alias = args.get_option("as") or pkg_name
-
   ppm_path = get_env("PPM_PATH")
 
   config_main = "$cwd/ppm.config"
+  config = read_config(config_main)
 
-  return switch (pkg_name, ppm_path, alias) {
-    case (Some(name), Some(path), Some(pkg_alias)) {
+  return switch (pkg_name, ppm_path, config) {
+    case (Some(name), Some(ppm_path), Some(config)) {
+      info("Fetching packages from $name")
 
-      pkg_path = "$path/modules/$pkg_alias"
+      packages = get_all_packages_from(name)
 
-      if does_directory_exist(pkg_path) {
-        info("Updating package $name")
-        execute_command("git -C $pkg_path pull")
-      } else {
-        info("Adding package $name")
-        execute_command("git clone https://github.com/$name $pkg_path")
-      }
+      pkgs_to_be_written = packages.join(", ").join_str("")
 
-      if does_directory_exist(pkg_path) and does_file_exist(config_main) {
-        new_config = add_package(file_config, name)
-          .map(show)
-          .join_str("\n")
-        ppm_writefile(config_main, new_config)
+      info("Installing $pkgs_to_be_written")
+      packages.map(fn (pkg) {
+        url = "https://github.com/$pkg"
+        pkg_path = "$ppm_path/modules/$pkg"
 
-        package = parse_config(new_config)
-        all_packages = get_all_packages(package)
-        ppm_writefile("$cwd/ppm.lock", all_packages.join_str("\n"))
+        if does_directory_exist(pkg_path) {
+          warn("Already installed $pkg")
+        } else { 
+          res = execute_command("git clone $url $pkg_path")
 
-        return unit
-      } else {
-        return error("Failed to clone package")
-      }
+          if res != 0 {
+            error("Failed to clone $url")
+          } else {
+            success("Installed $pkg")
+          }
+        }
+      })
 
-      
-      return unit
+      lock_file = "$cwd/ppm.lock"
+
+      ppm_writefile(lock_file, packages.unlines())
+      ppm_writefile(config_main, config.add_package(name).map(show).unlines())
+
+      return success("Added $name to $config_main")
     }
 
-    case (None, ?, ?) => error("No package name provided")
-    case (?, None, ?) => error("PPM_PATH not set")
-    case (?, ?, None) => error("No package provided")
+    case ? => error("No PPM_PATH found in environment")
   }
 }
