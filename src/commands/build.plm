@@ -1,28 +1,28 @@
 require "add"
 require "../config"
 require "../../library/file"
+require "../../library/string"
 require "../pretty"
 require "std:io/system"
 require "types"
 require "std:io/file"
 
-fn build_packages(ppm_path: str): unit {
-  pkgs = get_all_packages(file_config)
+fn build_packages(ppm_path: str, packages: Option<list<str>>): unit {
+  pkgs = packages.or_else(get_all_packages(file_config))
 
   pkgs.map(fn (pkg) {
     url = "https://github.com/$pkg"
     pkg_path = "$ppm_path/modules/$pkg"
 
     if does_directory_exist(pkg_path) {
-      info("Already installed $pkg")
-      return unit
+      warn("Already installed $pkg")
     } else { 
       res = execute_command("git clone $url $pkg_path")
 
       if res != 0 {
         error("Failed to clone $url")
       } else {
-        info("Installed $pkg")
+        success("Installed $pkg")
       }
     }
   })
@@ -32,18 +32,19 @@ fn build_cmd(_: str, args: list<Argument>): unit {
   config_main = get_string(file_config, "main")
   interpreter_config = get_string(file_config, "interpreter")
 
+  lock_file = "$cwd/ppm.lock"
+  lock = read_file(lock_file).map(fn (x) => x.split_str("\n"))
+
   interpreter = (interpreter_config or args.get_option("e")).or_else("native")
     
   return switch (config_main, get_env("PPM_PATH")) {
     case (Some(filename), Some(path)) {
       if does_file_exist("$filename.plm") {
-        build_packages(path)
+        build_packages(path, lock)
         res = spawn_process("plumec", ["$filename.plm", "-e", interpreter])
         println(res.snd())
-        return unit
       } else {
         error("File $filename.plm not found")
-        return unit
       }
     }
 
