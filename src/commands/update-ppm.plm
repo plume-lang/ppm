@@ -1,0 +1,25 @@
+require "../../library/file"
+require "../pretty"
+
+async fn update_ppm_cmd(_, args: list<Argument>): unit {
+  path = get_env("PPM_PATH")
+
+  switch path {
+    case Some(ppm_path) {
+      if does_directory_exist(ppm_path) {
+        info("Updating ppm")
+        execute_command("cd $ppm_path && git pull origin main")
+      } else {
+        info("Cloning ppm")
+        execute_command("git clone https://github.com/plume-lang/ppm.git $ppm_path")
+      }
+
+      execute_command("plumec $ppm_path/main.plm")
+      execute_command("node $ppm_path/main.js install")
+
+      success("Correctly updated ppm")
+    }
+
+    case None => error("No PPM_PATH variable found in environment")
+  }
+}
