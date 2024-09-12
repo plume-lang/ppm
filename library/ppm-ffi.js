@@ -104,4 +104,8 @@ module.exports = {
       );
     });
   },
+
+  split_str(str, separator) {
+    return str.split(separator);
+  }
 }

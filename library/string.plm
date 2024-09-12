@@ -1,0 +1,3 @@
+native "js" "ppm-ffi" {
+  split_str(s: str, separator: str): list<str>
+}
